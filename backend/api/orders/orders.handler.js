@@ -1,40 +1,13 @@
-const { asyncHandler } = require("../../middleware/errorHandler");
-const orderCrud = require("./crud/orderCrud");
-const splitBill = require("./crud/splitBill");
+const getOrdersV1 = require("./crud/getOrders.v1");
+const getOrderV1 = require("./crud/getOrder.v1");
+const createOrderV1 = require("./crud/createOrder.v1");
+const updateOrderStatusV1 = require("./crud/updateOrderStatus.v1");
+const splitBillV1 = require("./crud/splitBill.v1");
+const voidOrderV1 = require("./crud/voidOrder.v1");
 
-exports.list = asyncHandler(async (req, res) => {
-  const { status, date_from, date_to } = req.query;
-  const data = await orderCrud.listOrders({
-    ...req.pagination,
-    status,
-    date_from,
-    date_to,
-  });
-  res.json(data);
-});
-
-exports.getById = asyncHandler(async (req, res) => {
-  const data = await orderCrud.getOrderById(req.params.id);
-  res.json(data);
-});
-
-exports.create = asyncHandler(async (req, res) => {
-  const data = await orderCrud.createOrder(req.body, req.user.id);
-  res.status(201).json(data);
-});
-
-exports.updateStatus = asyncHandler(async (req, res) => {
-  const data = await orderCrud.updateOrderStatus(req.params.id, req.body.status);
-  res.json(data);
-});
-
-exports.splitBill = asyncHandler(async (req, res) => {
-  const { splits } = req.body;
-  const data = await splitBill.splitOrder(req.params.id, splits);
-  res.json(data);
-});
-
-exports.voidOrder = asyncHandler(async (req, res) => {
-  await orderCrud.voidOrder(req.params.id, req.user.id);
-  res.json({ message: "Order voided" });
-});
+exports.getOrders = getOrdersV1;
+exports.getOrder = getOrderV1;
+exports.createOrder = createOrderV1;
+exports.updateOrderStatus = updateOrderStatusV1;
+exports.splitBill = splitBillV1;
+exports.voidOrder = voidOrderV1;

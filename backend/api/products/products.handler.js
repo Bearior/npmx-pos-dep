@@ -1,56 +1,19 @@
-const { asyncHandler } = require("../../middleware/errorHandler");
-const productCrud = require("./crud/productCrud");
-const variantCrud = require("./crud/variantCrud");
+const getProductsV1 = require("./crud/getProducts.v1");
+const getProductV1 = require("./crud/getProduct.v1");
+const createProductV1 = require("./crud/createProduct.v1");
+const updateProductV1 = require("./crud/updateProduct.v1");
+const deleteProductV1 = require("./crud/deleteProduct.v1");
+const getVariantsV1 = require("./crud/getVariants.v1");
+const createVariantV1 = require("./crud/createVariant.v1");
+const updateVariantV1 = require("./crud/updateVariant.v1");
+const deleteVariantV1 = require("./crud/deleteVariant.v1");
 
-exports.list = asyncHandler(async (req, res) => {
-  const { search, category_id, is_active } = req.query;
-  const data = await productCrud.listProducts({
-    ...req.pagination,
-    search,
-    category_id,
-    is_active,
-  });
-  res.json(data);
-});
-
-exports.getById = asyncHandler(async (req, res) => {
-  const data = await productCrud.getProductById(req.params.id);
-  res.json(data);
-});
-
-exports.create = asyncHandler(async (req, res) => {
-  const data = await productCrud.createProduct(req.body);
-  res.status(201).json(data);
-});
-
-exports.update = asyncHandler(async (req, res) => {
-  const data = await productCrud.updateProduct(req.params.id, req.body);
-  res.json(data);
-});
-
-exports.remove = asyncHandler(async (req, res) => {
-  await productCrud.deleteProduct(req.params.id);
-  res.json({ message: "Product deleted" });
-});
-
-// --- Variants ---
-
-exports.listVariants = asyncHandler(async (req, res) => {
-  const data = await variantCrud.listVariants(req.params.id);
-  res.json(data);
-});
-
-exports.createVariant = asyncHandler(async (req, res) => {
-  const data = await variantCrud.createVariant(req.params.id, req.body);
-  res.status(201).json(data);
-});
-
-exports.updateVariant = asyncHandler(async (req, res) => {
-  const data = await variantCrud.updateVariant(req.params.variantId, req.body);
-  res.json(data);
-});
-
-exports.removeVariant = asyncHandler(async (req, res) => {
-  await variantCrud.deleteVariant(req.params.variantId);
-  res.json({ message: "Variant deleted" });
-});
+exports.getProducts = getProductsV1;
+exports.getProduct = getProductV1;
+exports.createProduct = createProductV1;
+exports.updateProduct = updateProductV1;
+exports.deleteProduct = deleteProductV1;
+exports.getVariants = getVariantsV1;
+exports.createVariant = createVariantV1;
+exports.updateVariant = updateVariantV1;
+exports.deleteVariant = deleteVariantV1;

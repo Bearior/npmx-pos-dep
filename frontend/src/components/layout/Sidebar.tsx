@@ -128,8 +128,8 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile toggle button */}
-      {isMobile && (
+      {/* Mobile toggle button – hidden when drawer is open */}
+      {isMobile && !mobileOpen && (
         <IconButton
           onClick={() => setMobileOpen(true)}
           sx={{

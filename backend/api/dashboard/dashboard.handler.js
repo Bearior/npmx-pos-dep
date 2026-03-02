@@ -1,17 +1,7 @@
-const { asyncHandler } = require("../../middleware/errorHandler");
-const dashboardCrud = require("./crud/dashboardCrud");
+const getDashboardSummaryV1 = require("./crud/getDashboardSummary.v1");
+const getRecentOrdersV1 = require("./crud/getRecentOrders.v1");
+const getAlertsV1 = require("./crud/getAlerts.v1");
 
-exports.summary = asyncHandler(async (_req, res) => {
-  const data = await dashboardCrud.getDashboardSummary();
-  res.json(data);
-});
-
-exports.recentOrders = asyncHandler(async (_req, res) => {
-  const data = await dashboardCrud.getRecentOrders();
-  res.json(data);
-});
-
-exports.alerts = asyncHandler(async (_req, res) => {
-  const data = await dashboardCrud.getAlerts();
-  res.json(data);
-});
+exports.getDashboardSummary = getDashboardSummaryV1;
+exports.getRecentOrders = getRecentOrdersV1;
+exports.getAlerts = getAlertsV1;

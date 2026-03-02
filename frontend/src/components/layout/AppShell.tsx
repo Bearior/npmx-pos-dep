@@ -17,7 +17,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         component="main"
         sx={{
           flexGrow: 1,
-          ml: isMobile ? 0 : `${DRAWER_WIDTH}px`,
+          width: isMobile ? "100%" : `calc(100% - ${DRAWER_WIDTH}px)`,
           p: { xs: 2, md: 3 },
           pt: { xs: 8, md: 3 },
           overflow: "auto",

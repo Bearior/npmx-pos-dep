@@ -1,22 +1,9 @@
-const { asyncHandler } = require("../../middleware/errorHandler");
-const paymentCrud = require("./crud/paymentCrud");
+const getPaymentsV1 = require("./crud/getPayments.v1");
+const getPaymentV1 = require("./crud/getPayment.v1");
+const createPaymentV1 = require("./crud/createPayment.v1");
+const refundPaymentV1 = require("./crud/refundPayment.v1");
 
-exports.list = asyncHandler(async (req, res) => {
-  const data = await paymentCrud.listPayments(req.query);
-  res.json(data);
-});
-
-exports.getById = asyncHandler(async (req, res) => {
-  const data = await paymentCrud.getPaymentById(req.params.id);
-  res.json(data);
-});
-
-exports.create = asyncHandler(async (req, res) => {
-  const data = await paymentCrud.createPayment(req.body, req.user.id);
-  res.status(201).json(data);
-});
-
-exports.refund = asyncHandler(async (req, res) => {
-  const data = await paymentCrud.refundPayment(req.params.id, req.body, req.user.id);
-  res.json(data);
-});
+exports.getPayments = getPaymentsV1;
+exports.getPayment = getPaymentV1;
+exports.createPayment = createPaymentV1;
+exports.refundPayment = refundPaymentV1;

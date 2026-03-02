@@ -1,22 +1,9 @@
-const { asyncHandler } = require("../../middleware/errorHandler");
-const inventoryCrud = require("./crud/inventoryCrud");
+const getInventoryV1 = require("./crud/getInventory.v1");
+const getLowStockV1 = require("./crud/getLowStock.v1");
+const getStockHistoryV1 = require("./crud/getStockHistory.v1");
+const adjustStockV1 = require("./crud/adjustStock.v1");
 
-exports.list = asyncHandler(async (req, res) => {
-  const data = await inventoryCrud.listInventory(req.pagination);
-  res.json(data);
-});
-
-exports.lowStock = asyncHandler(async (_req, res) => {
-  const data = await inventoryCrud.getLowStockProducts();
-  res.json(data);
-});
-
-exports.history = asyncHandler(async (req, res) => {
-  const data = await inventoryCrud.getStockHistory(req.params.id);
-  res.json(data);
-});
-
-exports.adjust = asyncHandler(async (req, res) => {
-  const data = await inventoryCrud.adjustStock(req.body, req.user.id);
-  res.json(data);
-});
+exports.getInventory = getInventoryV1;
+exports.getLowStock = getLowStockV1;
+exports.getStockHistory = getStockHistoryV1;
+exports.adjustStock = adjustStockV1;

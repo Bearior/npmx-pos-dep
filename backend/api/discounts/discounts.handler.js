@@ -1,32 +1,13 @@
-const { asyncHandler } = require("../../middleware/errorHandler");
-const discountCrud = require("./crud/discountCrud");
+const getDiscountsV1 = require("./crud/getDiscounts.v1");
+const getDiscountV1 = require("./crud/getDiscount.v1");
+const validateDiscountV1 = require("./crud/validateDiscount.v1");
+const createDiscountV1 = require("./crud/createDiscount.v1");
+const updateDiscountV1 = require("./crud/updateDiscount.v1");
+const deleteDiscountV1 = require("./crud/deleteDiscount.v1");
 
-exports.list = asyncHandler(async (_req, res) => {
-  const data = await discountCrud.listDiscounts();
-  res.json(data);
-});
-
-exports.getById = asyncHandler(async (req, res) => {
-  const data = await discountCrud.getDiscountById(req.params.id);
-  res.json(data);
-});
-
-exports.validateCode = asyncHandler(async (req, res) => {
-  const data = await discountCrud.validateDiscountCode(req.body.code);
-  res.json(data);
-});
-
-exports.create = asyncHandler(async (req, res) => {
-  const data = await discountCrud.createDiscount(req.body);
-  res.status(201).json(data);
-});
-
-exports.update = asyncHandler(async (req, res) => {
-  const data = await discountCrud.updateDiscount(req.params.id, req.body);
-  res.json(data);
-});
-
-exports.remove = asyncHandler(async (req, res) => {
-  await discountCrud.deleteDiscount(req.params.id);
-  res.json({ message: "Discount deleted" });
-});
+exports.getDiscounts = getDiscountsV1;
+exports.getDiscount = getDiscountV1;
+exports.validateDiscount = validateDiscountV1;
+exports.createDiscount = createDiscountV1;
+exports.updateDiscount = updateDiscountV1;
+exports.deleteDiscount = deleteDiscountV1;
