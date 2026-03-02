@@ -1,0 +1,7 @@
+# Frontend – NPMX POS
+
+node_modules/
+.next/
+out/
+.env*.local
+*.log

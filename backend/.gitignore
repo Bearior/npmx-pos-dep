@@ -1,0 +1,7 @@
+# Backend – NPMX POS API
+
+node_modules/
+config/config.env
+.env
+*.log
+dist/
