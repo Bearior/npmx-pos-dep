@@ -9,7 +9,7 @@ module.exports = async (req, res) => {
   try {
     const { data, error } = await supabaseAdmin
       .from("orders")
-      .select("id, order_number, status, total, order_type, created_at")
+      .select("id, order_number, status, total, created_at")
       .order("created_at", { ascending: false })
       .limit(10);
 

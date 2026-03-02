@@ -47,24 +47,24 @@ module.exports = async (req, res) => {
       return res.status(500).json({ success: false, message: updateError.message });
     }
 
-    // Record transaction
-    const { data: transaction, error: txError } = await supabaseAdmin
-      .from("stock_transactions")
-      .insert({
-        product_id,
-        type,
-        quantity: delta,
-        previous_stock: product.stock_quantity,
-        new_stock: newStock,
-        reason: reason || null,
-        performed_by: req.user.id,
-      })
-      .select()
-      .single();
+    // // Record transaction
+    // const { data: transaction, error: txError } = await supabaseAdmin
+    //   .from("stock_transactions")
+    //   .insert({
+    //     product_id,
+    //     type,
+    //     quantity: delta,
+    //     previous_stock: product.stock_quantity,
+    //     new_stock: newStock,
+    //     reason: reason || null,
+    //     performed_by: req.user.id,
+    //   })
+    //   .select()
+    //   .single();
 
-    if (txError) {
-      return res.status(500).json({ success: false, message: txError.message });
-    }
+    // if (txError) {
+    //   return res.status(500).json({ success: false, message: txError.message });
+    // }
 
     res.status(200).json({
       success: true,
@@ -73,8 +73,7 @@ module.exports = async (req, res) => {
         product_name: product.name,
         previous_stock: product.stock_quantity,
         adjustment: delta,
-        new_stock: newStock,
-        transaction,
+        new_stock: newStock
       },
     });
   } catch (err) {

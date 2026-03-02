@@ -9,9 +9,8 @@ module.exports = async (req, res) => {
   try {
     const { data, error } = await supabaseAdmin
       .from("products")
-      .select("id, name, sku, stock_quantity, min_stock_level, categories(name)")
+      .select("id, name, sku, stock_quantity, low_stock_threshold, categories(name)")
       .eq("is_active", true)
-      .filter("stock_quantity", "lte", "min_stock_level")
       .order("stock_quantity");
 
     if (error) {

@@ -57,10 +57,10 @@ export default function InventoryPage() {
     if (!token) return;
     try {
       const [inv, low] = await Promise.all([
-        api.get<{ data: Product[] }>("/inventory", token, { limit: "200" }),
+        api.get<Product[]>("/inventory", token, { limit: "200" }),
         api.get<Product[]>("/inventory/low-stock", token),
       ]);
-      setProducts(inv.data);
+      setProducts(inv);
       setLowStock(low);
     } catch (err) {
       console.error("Inventory load failed:", err);
