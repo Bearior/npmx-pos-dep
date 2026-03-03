@@ -12,6 +12,7 @@ import {
   ListItemText,
   Chip,
   Alert,
+  Divider,
 } from "@mui/material";
 import {
   TrendingUp as RevenueIcon,
@@ -66,23 +67,96 @@ export default function DashboardPage() {
 
       {/* KPI Cards */}
       <Grid container spacing={2} className="mb-4">
-        <Grid item xs={6} md={3}>
-          <StatCard
-            title="Today&apos;s Revenue"
-            value={`฿${summary?.today.revenue.toLocaleString() || 0}`}
-            subtitle={`${summary?.today.orders || 0} orders`}
-            icon={<RevenueIcon />}
-          />
+        {/* Today's Revenue — detailed */}
+        <Grid item xs={12} md={3}>
+          <Card sx={{ height: "100%" }}>
+            <CardContent>
+              <Box className="flex items-start justify-between">
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Today&apos;s Revenue
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700} color="#ea5c1f">
+                    ฿{(summary?.today.revenue ?? 0).toLocaleString()}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {summary?.today.completed_orders ?? 0} completed orders
+                  </Typography>
+                </Box>
+                <Box sx={{ p: 1, borderRadius: 2, bgcolor: "#ea5c1f14", color: "#ea5c1f", display: "flex" }}>
+                  <RevenueIcon />
+                </Box>
+              </Box>
+              <Divider sx={{ my: 1.5 }} />
+              <Box className="flex flex-col gap-0.5">
+                <Box className="flex justify-between">
+                  <Typography variant="caption" color="text.secondary">Profit</Typography>
+                  <Typography variant="caption" fontWeight={700} color={(summary?.today.profit ?? 0) >= 0 ? "success.main" : "error.main"}>
+                    ฿{(summary?.today.profit ?? 0).toLocaleString()}
+                  </Typography>
+                </Box>
+                <Box className="flex justify-between">
+                  <Typography variant="caption" color="text.secondary">Avg / Order</Typography>
+                  <Typography variant="caption" fontWeight={600}>
+                    ฿{(summary?.today.avg_order_value ?? 0).toLocaleString()}
+                  </Typography>
+                </Box>
+                <Box className="flex justify-between">
+                  <Typography variant="caption" color="text.secondary">Total Orders</Typography>
+                  <Typography variant="caption" fontWeight={600}>
+                    {summary?.today.total_orders ?? 0}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
         </Grid>
-        <Grid item xs={6} md={3}>
-          <StatCard
-            title="Monthly Revenue"
-            value={`฿${summary?.month.revenue.toLocaleString() || 0}`}
-            subtitle={`${summary?.month.orders || 0} orders`}
-            icon={<RevenueIcon />}
-            color="#22c55e"
-          />
+
+        {/* Monthly Revenue — detailed */}
+        <Grid item xs={12} md={3}>
+          <Card sx={{ height: "100%" }}>
+            <CardContent>
+              <Box className="flex items-start justify-between">
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Monthly Revenue
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700} color="#22c55e">
+                    ฿{(summary?.month.revenue ?? 0).toLocaleString()}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {summary?.month.completed_orders ?? 0} completed orders
+                  </Typography>
+                </Box>
+                <Box sx={{ p: 1, borderRadius: 2, bgcolor: "#22c55e14", color: "#22c55e", display: "flex" }}>
+                  <RevenueIcon />
+                </Box>
+              </Box>
+              <Divider sx={{ my: 1.5 }} />
+              <Box className="flex flex-col gap-0.5">
+                <Box className="flex justify-between">
+                  <Typography variant="caption" color="text.secondary">Profit</Typography>
+                  <Typography variant="caption" fontWeight={700} color={(summary?.month.profit ?? 0) >= 0 ? "success.main" : "error.main"}>
+                    ฿{(summary?.month.profit ?? 0).toLocaleString()}
+                  </Typography>
+                </Box>
+                <Box className="flex justify-between">
+                  <Typography variant="caption" color="text.secondary">Avg / Order</Typography>
+                  <Typography variant="caption" fontWeight={600}>
+                    ฿{(summary?.month.avg_order_value ?? 0).toLocaleString()}
+                  </Typography>
+                </Box>
+                <Box className="flex justify-between">
+                  <Typography variant="caption" color="text.secondary">Total Orders</Typography>
+                  <Typography variant="caption" fontWeight={600}>
+                    {summary?.month.total_orders ?? 0}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
         </Grid>
+
         <Grid item xs={6} md={3}>
           <StatCard
             title="Active Orders"
@@ -93,10 +167,10 @@ export default function DashboardPage() {
         </Grid>
         <Grid item xs={6} md={3}>
           <StatCard
-            title="Avg. Order Value"
-            value={`฿${summary?.average_order_value || 0}`}
-            icon={<AvgIcon />}
-            color="#8b5cf6"
+            title="Low Stock Items"
+            value={summary?.low_stock_count || 0}
+            icon={<AlertIcon />}
+            color="#ef4444"
           />
         </Grid>
       </Grid>

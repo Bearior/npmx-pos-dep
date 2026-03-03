@@ -13,10 +13,10 @@ module.exports = async (req, res) => {
       "type",
       "value",
       "min_order_amount",
-      "max_discount_amount",
+      "max_discount",
       "max_uses",
-      "start_date",
-      "end_date",
+      "starts_at",
+      "expires_at",
       "is_active",
     ];
     const updates = {};

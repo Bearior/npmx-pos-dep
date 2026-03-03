@@ -36,7 +36,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Body parsing
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // Request logging

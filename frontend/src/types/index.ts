@@ -64,7 +64,7 @@ export interface ProductVariant {
 export interface CartItem {
   id: string; // unique cart-line id
   product: Product;
-  variant?: ProductVariant;
+  variants?: ProductVariant[];
   quantity: number;
   unitPrice: number;
   notes?: string;
@@ -167,12 +167,20 @@ export interface InventoryTransaction {
 }
 
 // --- Dashboard ---
+export interface DashboardPeriod {
+  total_orders: number;
+  completed_orders: number;
+  revenue: number;
+  profit: number;
+  total_cost: number;
+  avg_order_value: number;
+}
+
 export interface DashboardSummary {
-  today: { orders: number; revenue: number };
-  month: { orders: number; revenue: number };
+  today: DashboardPeriod;
+  month: DashboardPeriod;
   active_orders: number;
   low_stock_count: number;
-  average_order_value: number;
 }
 
 export interface DashboardAlert {
@@ -185,19 +193,63 @@ export interface DashboardAlert {
 
 // --- Reports ---
 export interface SalesReportRow {
-  date: string;
-  orders: number;
-  subtotal: number;
-  discounts: number;
+  period: string;
+  total_orders: number;
+  revenue: number;
   tax: number;
-  total: number;
+  discounts: number;
+  avg_order_value: number;
+}
+
+export interface SalesReportResponse {
+  start_date: string;
+  end_date: string;
+  group_by: string;
+  total_revenue: number;
+  total_orders: number;
+  data: SalesReportRow[];
 }
 
 export interface ProductReportRow {
   product_id: string;
   product_name: string;
   total_quantity: number;
+  total_revenue: number | null;
+  order_count: number;
+}
+
+export interface ProductReportResponse {
+  start_date: string;
+  end_date: string;
+  data: ProductReportRow[];
+}
+
+export interface PaymentMethodRow {
+  method: string;
+  count: number;
+  total: number;
+  percentage: number;
+}
+
+export interface PaymentMethodResponse {
+  start_date: string;
+  end_date: string;
+  grand_total: number;
+  data: PaymentMethodRow[];
+}
+
+export interface HourlyRow {
+  hour: number;
+  label: string;
+  order_count: number;
+  revenue: number;
+}
+
+export interface HourlyResponse {
+  date: string;
+  total_orders: number;
   total_revenue: number;
+  data: HourlyRow[];
 }
 
 // --- API Response ---
@@ -206,4 +258,81 @@ export interface PaginatedResponse<T> {
   total: number;
   limit: number;
   offset: number;
+}
+
+// --- Customer Behavior Analytics ---
+export type CustomerClassification = "long_stay" | "moderate" | "quick";
+
+export interface BehaviorSession {
+  session_key: string;
+  table_number: string | null;
+  customer_name: string | null;
+  is_delivery: boolean;
+  first_order_at: string;
+  last_order_at: string;
+  session_duration_min: number;
+  order_count: number;
+  total_items: number;
+  total_revenue: number;
+  avg_basket_value: number;
+  basket_value_cv: number;
+  unique_categories: number;
+  category_diversity: number;
+  avg_time_gap_min: number;
+  dwell_score: number;
+  classification: CustomerClassification;
+  order_numbers: string[];
+}
+
+export interface BehaviorKPIs {
+  total_sessions: number;
+  dine_in_sessions: number;
+  delivery_sessions: number;
+  avg_session_duration: number;
+  avg_orders_per_session: number;
+  avg_basket_value: number;
+  long_stay_avg_revenue: number;
+  quick_avg_revenue: number;
+  long_stay_pct: number;
+  quick_pct: number;
+  avg_dwell_score: number;
+  revenue_by_type: {
+    long_stay: number;
+    moderate: number;
+    quick: number;
+    delivery: number;
+  };
+}
+
+export interface BehaviorHourlyPattern {
+  hour: number;
+  long_stay: number;
+  moderate: number;
+  quick: number;
+}
+
+export interface MethodologyVariable {
+  name: string;
+  formula: string;
+  description: string;
+}
+
+export interface BehaviorMethodology {
+  session_definition: string;
+  derived_variables: MethodologyVariable[];
+  classification_rules: Record<string, string>;
+  model_suggestions: string[];
+  assumptions: string[];
+  limitations: string[];
+  validation: string[];
+}
+
+export interface CustomerBehaviorResponse {
+  date_from: string;
+  date_to: string;
+  sessions: BehaviorSession[];
+  summary: { long_stay: number; moderate: number; quick: number };
+  kpis: BehaviorKPIs;
+  hourly_pattern: BehaviorHourlyPattern[];
+  methodology: BehaviorMethodology;
 }

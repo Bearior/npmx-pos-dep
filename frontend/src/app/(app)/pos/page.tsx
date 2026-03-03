@@ -5,7 +5,7 @@ import { Box, Typography, TextField, InputAdornment, Tabs, Tab, Snackbar, Alert 
 import { Search as SearchIcon } from "@mui/icons-material";
 import { useAuth } from "@/providers/AuthProvider";
 import api from "@/libs/api";
-import type { Product, Category, CartItem, Discount } from "@/types";
+import type { Product, Category, CartItem, Discount, ProductVariant } from "@/types";
 import ProductGrid from "./components/ProductGrid";
 import CartPanel from "./components/CartPanel";
 import PaymentDialog from "./components/PaymentDialog";
@@ -29,6 +29,7 @@ export default function POSPage() {
   const [appliedDiscount, setAppliedDiscount] = useState<Discount | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [tableNumber, setTableNumber] = useState("");
+  const [isGrab, setIsGrab] = useState(false);
 
   // Dialogs
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -61,19 +62,32 @@ export default function POSPage() {
     fetchData();
   }, [token]);
 
-  // Filtered products
-  const filteredProducts = products.filter((p) => {
-    if (!p.is_active) return false;
-    if (selectedCategory !== "all" && p.category_id !== selectedCategory) return false;
-    if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  // Filtered products — out of stock sorted to bottom
+  const filteredProducts = products
+    .filter((p) => {
+      if (!p.is_active) return false;
+      if (selectedCategory !== "all" && p.category_id !== selectedCategory) return false;
+      if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const aOut = a.track_inventory && a.stock_quantity <= 0 ? 1 : 0;
+      const bOut = b.track_inventory && b.stock_quantity <= 0 ? 1 : 0;
+      return aOut - bOut;
+    });
 
   // Cart operations
-  const addToCart = useCallback((product: Product, variant?: CartItem["variant"]) => {
+  const addToCart = useCallback((product: Product, variants?: ProductVariant[]) => {
     setCart((prev) => {
+      const variantKey = variants && variants.length > 0
+        ? variants.map((v) => v.id).sort().join("+")
+        : "base";
+
       const existingIdx = prev.findIndex(
-        (item) => item.product.id === product.id && item.variant?.id === variant?.id
+        (item) => item.product.id === product.id &&
+          (item.variants && item.variants.length > 0
+            ? item.variants.map((v) => v.id).sort().join("+")
+            : "base") === variantKey
       );
 
       if (existingIdx >= 0) {
@@ -85,13 +99,14 @@ export default function POSPage() {
         return updated;
       }
 
-      const unitPrice = product.price + (variant?.price_modifier || 0);
+      const modifiers = variants?.reduce((sum, v) => sum + v.price_modifier, 0) || 0;
+      const unitPrice = product.price + modifiers;
       return [
         ...prev,
         {
-          id: `${product.id}-${variant?.id || "base"}-${Date.now()}`,
+          id: `${product.id}-${variantKey}-${Date.now()}`,
           product,
-          variant,
+          variants: variants && variants.length > 0 ? variants : undefined,
           quantity: 1,
           unitPrice,
         },
@@ -128,6 +143,7 @@ export default function POSPage() {
     setDiscountCode("");
     setCustomerName("");
     setTableNumber("");
+    setIsGrab(false);
   };
 
   // Discount
@@ -237,6 +253,11 @@ export default function POSPage() {
         onRemoveDiscount={() => { setAppliedDiscount(null); setDiscountCode(""); }}
         onCustomerNameChange={setCustomerName}
         onTableNumberChange={setTableNumber}
+        isGrab={isGrab}
+        onGrabChange={(checked) => {
+          setIsGrab(checked);
+          setTableNumber("");
+        }}
         onUpdateQuantity={updateCartQuantity}
         onRemoveItem={removeFromCart}
         onClearCart={clearCart}
@@ -249,8 +270,8 @@ export default function POSPage() {
           product={variantProduct}
           open={!!variantProduct}
           onClose={() => setVariantProduct(null)}
-          onSelect={(variant) => {
-            addToCart(variantProduct, variant);
+          onConfirm={(variants) => {
+            addToCart(variantProduct, variants);
             setVariantProduct(null);
           }}
         />

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -10,32 +10,103 @@ import {
   ListItemButton,
   ListItemText,
   Chip,
+  Checkbox,
+  Divider,
 } from "@mui/material";
+import { CheckCircle } from "@mui/icons-material";
 import Modal from "@/components/ui/Modal";
 import type { Product, ProductVariant } from "@/types";
+
+// Types that allow single-select (pick one)
+const SINGLE_SELECT_TYPES = new Set(["size", "color"]);
 
 interface Props {
   product: Product;
   open: boolean;
   onClose: () => void;
-  onSelect: (variant?: ProductVariant) => void;
+  onConfirm: (variants: ProductVariant[]) => void;
 }
 
-export default function VariantSelector({ product, open, onClose, onSelect }: Props) {
+export default function VariantSelector({ product, open, onClose, onConfirm }: Props) {
   const variants = product.product_variants?.filter((v) => v.is_active) || [];
 
   // Group variants by type
-  const grouped: Record<string, ProductVariant[]> = {};
-  for (const v of variants) {
-    if (!grouped[v.type]) grouped[v.type] = [];
-    grouped[v.type].push(v);
-  }
+  const grouped: Record<string, ProductVariant[]> = useMemo(() => {
+    const g: Record<string, ProductVariant[]> = {};
+    for (const v of variants) {
+      if (!g[v.type]) g[v.type] = [];
+      g[v.type].push(v);
+    }
+    return g;
+  }, [variants]);
+
+  // Single-select state (size, color): store one selected id per type
+  const [singleSelections, setSingleSelections] = useState<Record<string, string>>({});
+  // Multi-select state (add_on, custom): store Set of selected ids per type
+  const [multiSelections, setMultiSelections] = useState<Record<string, Set<string>>>({});
 
   const typeLabels: Record<string, string> = {
-    size: "Size",
-    add_on: "Add-ons",
-    color: "Color",
-    custom: "Options",
+    size: "Size (pick one)",
+    add_on: "Add-ons (pick many)",
+    color: "Color (pick one)",
+    custom: "Options (pick many)",
+  };
+
+  const isSingleSelect = (type: string) => SINGLE_SELECT_TYPES.has(type);
+
+  const handleSingleSelect = (type: string, variantId: string) => {
+    setSingleSelections((prev) => ({
+      ...prev,
+      [type]: prev[type] === variantId ? "" : variantId,
+    }));
+  };
+
+  const handleMultiToggle = (type: string, variantId: string) => {
+    setMultiSelections((prev) => {
+      const current = new Set(prev[type] || []);
+      if (current.has(variantId)) {
+        current.delete(variantId);
+      } else {
+        current.add(variantId);
+      }
+      return { ...prev, [type]: current };
+    });
+  };
+
+  const isSelected = (type: string, variantId: string) => {
+    if (isSingleSelect(type)) {
+      return singleSelections[type] === variantId;
+    }
+    return multiSelections[type]?.has(variantId) || false;
+  };
+
+  // Compute selected variants
+  const selectedVariants = useMemo(() => {
+    const result: ProductVariant[] = [];
+    for (const [type, items] of Object.entries(grouped)) {
+      if (isSingleSelect(type)) {
+        const selected = items.find((v) => v.id === singleSelections[type]);
+        if (selected) result.push(selected);
+      } else {
+        const selectedIds = multiSelections[type] || new Set();
+        result.push(...items.filter((v) => selectedIds.has(v.id)));
+      }
+    }
+    return result;
+  }, [grouped, singleSelections, multiSelections]);
+
+  // Compute total price
+  const totalModifier = selectedVariants.reduce((sum, v) => sum + v.price_modifier, 0);
+  const totalPrice = product.price + totalModifier;
+
+  const handleConfirm = () => {
+    onConfirm(selectedVariants);
+  };
+
+  const priceLabel = (variant: ProductVariant) => {
+    if (variant.price_modifier === 0) return "Included";
+    if (variant.price_modifier > 0) return `+฿${variant.price_modifier}`;
+    return `-฿${Math.abs(variant.price_modifier)}`;
   };
 
   return (
@@ -51,35 +122,81 @@ export default function VariantSelector({ product, open, onClose, onSelect }: Pr
               {typeLabels[type] || type}
             </Typography>
             <List disablePadding>
-              {items.map((variant) => (
-                <ListItem key={variant.id} disablePadding sx={{ mb: 0.5 }}>
-                  <ListItemButton
-                    onClick={() => onSelect(variant)}
-                    sx={{ borderRadius: 2, border: "1px solid", borderColor: "divider" }}
-                  >
-                    <ListItemText primary={variant.name} />
-                    <Chip
-                      label={
-                        variant.price_modifier === 0
-                          ? "Included"
-                          : variant.price_modifier > 0
-                          ? `+฿${variant.price_modifier}`
-                          : `-฿${Math.abs(variant.price_modifier)}`
+              {items.map((variant) => {
+                const selected = isSelected(type, variant.id);
+                return (
+                  <ListItem key={variant.id} disablePadding sx={{ mb: 0.5 }}>
+                    <ListItemButton
+                      onClick={() =>
+                        isSingleSelect(type)
+                          ? handleSingleSelect(type, variant.id)
+                          : handleMultiToggle(type, variant.id)
                       }
-                      size="small"
-                      color={variant.price_modifier === 0 ? "default" : "primary"}
-                      variant="outlined"
-                    />
-                  </ListItemButton>
-                </ListItem>
-              ))}
+                      sx={{
+                        borderRadius: 2,
+                        border: "2px solid",
+                        borderColor: selected ? "primary.main" : "divider",
+                        bgcolor: selected ? "primary.50" : "transparent",
+                      }}
+                    >
+                      {!isSingleSelect(type) && (
+                        <Checkbox
+                          checked={selected}
+                          size="small"
+                          sx={{ p: 0, mr: 1 }}
+                          tabIndex={-1}
+                          disableRipple
+                        />
+                      )}
+                      {isSingleSelect(type) && selected && (
+                        <CheckCircle color="primary" fontSize="small" sx={{ mr: 1 }} />
+                      )}
+                      <ListItemText primary={variant.name} />
+                      <Chip
+                        label={priceLabel(variant)}
+                        size="small"
+                        color={variant.price_modifier === 0 ? "default" : "primary"}
+                        variant="outlined"
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                );
+              })}
             </List>
           </Box>
         ))}
 
-        {/* Add without variant */}
-        <Button fullWidth variant="outlined" onClick={() => onSelect(undefined)} sx={{ mt: 1 }}>
-          Add without options (฿{product.price.toFixed(2)})
+        <Divider sx={{ my: 2 }} />
+
+        {/* Summary */}
+        <Box className="flex justify-between items-center mb-3">
+          <Typography variant="body2" color="text.secondary">
+            Total price
+          </Typography>
+          <Typography variant="h6" fontWeight={700} color="primary">
+            ฿{totalPrice.toFixed(2)}
+          </Typography>
+        </Box>
+
+        {selectedVariants.length > 0 && (
+          <Box className="mb-3">
+            <Typography variant="caption" color="text.secondary">
+              Selected: {selectedVariants.map((v) => v.name).join(", ")}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Confirm / Add without options */}
+        <Button
+          fullWidth
+          variant="contained"
+          size="large"
+          onClick={handleConfirm}
+          sx={{ mb: 1, fontWeight: 700 }}
+        >
+          {selectedVariants.length > 0
+            ? `Confirm — ฿${totalPrice.toFixed(2)}`
+            : `Add without options — ฿${product.price.toFixed(2)}`}
         </Button>
       </Box>
     </Modal>

@@ -5,6 +5,7 @@ const {
   getProductReport,
   getPaymentMethodReport,
   getHourlySalesReport,
+  getCustomerBehavior,
 } = require("./reports.handler");
 const { requireAuth, requireRole } = require("../../middleware/auth");
 
@@ -15,5 +16,6 @@ router.get("/sales", getSalesReport);
 router.get("/products", getProductReport);
 router.get("/payment-methods", getPaymentMethodReport);
 router.get("/hourly", getHourlySalesReport);
+router.get("/customer-behavior", getCustomerBehavior);
 
 module.exports = router;

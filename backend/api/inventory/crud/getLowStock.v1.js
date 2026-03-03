@@ -9,15 +9,19 @@ module.exports = async (req, res) => {
   try {
     const { data, error } = await supabaseAdmin
       .from("products")
-      .select("id, name, sku, stock_quantity, low_stock_threshold, categories(name)")
+      .select("id, stock_quantity, low_stock_threshold")
       .eq("is_active", true)
-      .order("stock_quantity");
+      .eq("track_inventory", true);
 
     if (error) {
       return res.status(500).json({ success: false, message: error.message });
     }
 
-    res.status(200).json(data);
+    const lowStockCount = (data || []).filter(
+      (p) => p.stock_quantity <= p.low_stock_threshold
+    ).length;
+
+    res.status(200).json({ count: lowStockCount });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
   }

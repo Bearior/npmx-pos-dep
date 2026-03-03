@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -18,29 +18,74 @@ import {
   Alert,
   Snackbar,
   Grid,
+  InputAdornment,
+  Switch,
+  FormControlLabel,
+  TableSortLabel,
 } from "@mui/material";
 import {
   Warning as WarningIcon,
   Add as AddIcon,
   Inventory2 as InvIcon,
+  Search as SearchIcon,
+  SwapVert as AdjustIcon,
+  History as HistoryIcon,
+  Edit as EditIcon,
+  CloudUpload as UploadIcon,
 } from "@mui/icons-material";
 import { useAuth } from "@/providers/AuthProvider";
 import api from "@/libs/api";
 import Modal from "@/components/ui/Modal";
 import LoadingScreen from "@/components/ui/LoadingScreen";
-import type { Product, InventoryTransaction } from "@/types";
+import type { Product, Category, InventoryTransaction } from "@/types";
+
+const emptyProductForm = {
+  name: "",
+  description: "",
+  price: "",
+  cost_price: "",
+  category_id: "",
+  sku: "",
+  image_url: "",
+  is_active: true,
+  track_inventory: true,
+  stock_quantity: "",
+  low_stock_threshold: "10",
+};
 
 export default function InventoryPage() {
   const { session } = useAuth();
   const token = session?.access_token;
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [lowStock, setLowStock] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [lowStockCount, setLowStockCount] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  // Search & Sort
+  const [search, setSearch] = useState("");
+  const [sortField, setSortField] = useState<"name" | "stock_quantity" | "price" | "cost_price">("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  // Add Product dialog
+  const [productFormOpen, setProductFormOpen] = useState(false);
+  const [productForm, setProductForm] = useState(emptyProductForm);
+  const [savingProduct, setSavingProduct] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+
+  // Edit Product dialog
+  const [editOpen, setEditOpen] = useState(false);
+  const [editProductId, setEditProductId] = useState("");
+  const [editForm, setEditForm] = useState(emptyProductForm);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editImageUploading, setEditImageUploading] = useState(false);
 
   // Adjust dialog
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [adjustProduct, setAdjustProduct] = useState("");
+  const [adjustProductName, setAdjustProductName] = useState("");
+  const [adjustCurrentStock, setAdjustCurrentStock] = useState(0);
+  const [adjustThreshold, setAdjustThreshold] = useState(0);
   const [adjustType, setAdjustType] = useState("restock");
   const [adjustQty, setAdjustQty] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
@@ -56,12 +101,14 @@ export default function InventoryPage() {
   const fetchData = async () => {
     if (!token) return;
     try {
-      const [inv, low] = await Promise.all([
+      const [inv, low, cats] = await Promise.all([
         api.get<Product[]>("/inventory", token, { limit: "200" }),
-        api.get<Product[]>("/inventory/low-stock", token),
+        api.get<{ count: number }>("/inventory/low-stock", token),
+        api.get<Category[]>("/categories", token),
       ]);
       setProducts(inv);
-      setLowStock(low);
+      setLowStockCount(low.count);
+      setCategories(cats);
     } catch (err) {
       console.error("Inventory load failed:", err);
     } finally {
@@ -72,6 +119,128 @@ export default function InventoryPage() {
   useEffect(() => {
     fetchData();
   }, [token]);
+
+  // ---- Add New Product ----
+  const uploadImage = async (file: File, target: "add" | "edit") => {
+    if (!token) return;
+    const setUploading = target === "add" ? setImageUploading : setEditImageUploading;
+    setUploading(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await api.post<{ url: string }>("/products/upload-image", { image: base64 }, token);
+      if (target === "add") {
+        setProductForm((f) => ({ ...f, image_url: res.url }));
+      } else {
+        setEditForm((f) => ({ ...f, image_url: res.url }));
+      }
+      setSnackbar({ open: true, message: "Image uploaded!", severity: "success" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      setSnackbar({ open: true, message: msg, severity: "error" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleAddProduct = async () => {
+    if (!token || !productForm.name || !productForm.price) return;
+    setSavingProduct(true);
+    try {
+      await api.post(
+        "/products",
+        {
+          name: productForm.name,
+          description: productForm.description || undefined,
+          price: parseFloat(productForm.price),
+          cost_price: productForm.cost_price ? parseFloat(productForm.cost_price) : undefined,
+          category_id: productForm.category_id || undefined,
+          sku: productForm.sku || undefined,
+          image_url: productForm.image_url || undefined,
+          is_active: productForm.is_active,
+          track_inventory: productForm.track_inventory,
+          stock_quantity: productForm.stock_quantity ? parseInt(productForm.stock_quantity) : 0,
+          low_stock_threshold: productForm.low_stock_threshold ? parseInt(productForm.low_stock_threshold) : 10,
+        },
+        token
+      );
+      setSnackbar({ open: true, message: "Product created successfully!", severity: "success" });
+      setProductFormOpen(false);
+      setProductForm(emptyProductForm);
+      fetchData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to create product";
+      setSnackbar({ open: true, message, severity: "error" });
+    } finally {
+      setSavingProduct(false);
+    }
+  };
+
+  // ---- Adjust Stock ----
+  const openAdjustForProduct = (product: Product) => {
+    setAdjustProduct(product.id);
+    setAdjustProductName(product.name);
+    setAdjustCurrentStock(product.stock_quantity);
+    setAdjustThreshold(product.low_stock_threshold);
+    setAdjustType("restock");
+    setAdjustQty("");
+    setAdjustReason("");
+    setAdjustOpen(true);
+  };
+
+  // ---- Edit Product Info ----
+  const openEditProduct = (product: Product) => {
+    setEditProductId(product.id);
+    setEditForm({
+      name: product.name,
+      description: product.description || "",
+      price: String(product.price ?? ""),
+      cost_price: product.cost_price ? String(product.cost_price) : "",
+      category_id: product.category_id || "",
+      sku: product.sku || "",
+      image_url: product.image_url || "",
+      is_active: product.is_active,
+      track_inventory: product.track_inventory,
+      stock_quantity: "",
+      low_stock_threshold: String(product.low_stock_threshold ?? "10"),
+    });
+    setEditOpen(true);
+  };
+
+  const handleEditProduct = async () => {
+    if (!token || !editProductId || !editForm.name || !editForm.price) return;
+    setSavingEdit(true);
+    try {
+      await api.put(
+        `/inventory/${editProductId}`,
+        {
+          name: editForm.name,
+          description: editForm.description || null,
+          price: parseFloat(editForm.price),
+          cost_price: editForm.cost_price ? parseFloat(editForm.cost_price) : null,
+          category_id: editForm.category_id || null,
+          sku: editForm.sku || null,
+          image_url: editForm.image_url || null,
+          is_active: editForm.is_active,
+          track_inventory: editForm.track_inventory,
+          low_stock_threshold: editForm.low_stock_threshold ? parseInt(editForm.low_stock_threshold) : 10,
+        },
+        token
+      );
+      setSnackbar({ open: true, message: "Product updated!", severity: "success" });
+      setEditOpen(false);
+      fetchData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Update failed";
+      setSnackbar({ open: true, message, severity: "error" });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   const handleAdjust = async () => {
     if (!token || !adjustProduct || !adjustQty) return;
@@ -90,6 +259,7 @@ export default function InventoryPage() {
       setSnackbar({ open: true, message: "Stock adjusted successfully", severity: "success" });
       setAdjustOpen(false);
       setAdjustProduct("");
+      setAdjustProductName("");
       setAdjustQty("");
       setAdjustReason("");
       fetchData();
@@ -105,9 +275,45 @@ export default function InventoryPage() {
     if (!token) return;
     setHistoryProduct(productId);
     setHistoryOpen(true);
-    const data = await api.get<InventoryTransaction[]>(`/inventory/${productId}/history`, token);
-    setHistory(data);
+    try {
+      const data = await api.get<InventoryTransaction[]>(`/inventory/${productId}/history`, token);
+      setHistory(data);
+    } catch {
+      setHistory([]);
+    }
   };
+
+  // Search & Sort logic
+  const handleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  };
+
+  const filteredProducts = useMemo(() => {
+    let list = [...products];
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.sku && p.sku.toLowerCase().includes(q)) ||
+          (p.categories?.name && p.categories.name.toLowerCase().includes(q))
+      );
+    }
+    list.sort((a, b) => {
+      const valA = a[sortField] ?? 0;
+      const valB = b[sortField] ?? 0;
+      if (typeof valA === "string" && typeof valB === "string") {
+        return sortDir === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      return sortDir === "asc" ? (valA as number) - (valB as number) : (valB as number) - (valA as number);
+    });
+    return list;
+  }, [products, search, sortField, sortDir]);
 
   if (loading) return <LoadingScreen message="Loading inventory..." />;
 
@@ -120,18 +326,38 @@ export default function InventoryPage() {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => setAdjustOpen(true)}
+          onClick={() => setProductFormOpen(true)}
         >
-          Adjust Stock
+          Add New Product
         </Button>
       </Box>
 
       {/* Low stock alerts */}
-      {lowStock.length > 0 && (
+      {lowStockCount > 0 && (
         <Alert severity="warning" icon={<WarningIcon />} className="mb-4">
-          {lowStock.length} product(s) are at or below their low stock threshold.
+          {lowStockCount} product(s) are at or below their low stock threshold.
         </Alert>
       )}
+
+      {/* Search */}
+      <Card className="mb-3">
+        <CardContent sx={{ py: 1.5 }}>
+          <TextField
+            placeholder="Search by name, SKU, or category..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            fullWidth
+            size="small"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </CardContent>
+      </Card>
 
       {/* Inventory table */}
       <Card>
@@ -139,22 +365,56 @@ export default function InventoryPage() {
           <Box sx={{ overflowX: "auto" }}>
             <Table size="small">
               <TableHead>
-                <TableRow>
-                  <TableCell>Product</TableCell>
+                <TableRow sx={{ bgcolor: "grey.100" }}>
+                  <TableCell>
+                    <TableSortLabel
+                      active={sortField === "name"}
+                      direction={sortField === "name" ? sortDir : "asc"}
+                      onClick={() => handleSort("name")}
+                    >
+                      Product
+                    </TableSortLabel>
+                  </TableCell>
                   <TableCell>SKU</TableCell>
                   <TableCell>Category</TableCell>
-                  <TableCell align="right">In Stock</TableCell>
+                  <TableCell align="right">
+                    <TableSortLabel
+                      active={sortField === "price"}
+                      direction={sortField === "price" ? sortDir : "asc"}
+                      onClick={() => handleSort("price")}
+                    >
+                      Price
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell align="right">
+                    <TableSortLabel
+                      active={sortField === "cost_price"}
+                      direction={sortField === "cost_price" ? sortDir : "asc"}
+                      onClick={() => handleSort("cost_price")}
+                    >
+                      Cost
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell align="right">
+                    <TableSortLabel
+                      active={sortField === "stock_quantity"}
+                      direction={sortField === "stock_quantity" ? sortDir : "asc"}
+                      onClick={() => handleSort("stock_quantity")}
+                    >
+                      In Stock
+                    </TableSortLabel>
+                  </TableCell>
                   <TableCell align="right">Threshold</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {products.map((product) => {
+                {filteredProducts.map((product) => {
                   const isLow = product.stock_quantity <= product.low_stock_threshold;
                   const isOut = product.stock_quantity === 0;
                   return (
-                    <TableRow key={product.id}>
+                    <TableRow key={product.id} hover>
                       <TableCell>
                         <Typography variant="body2" fontWeight={600}>
                           {product.name}
@@ -162,6 +422,10 @@ export default function InventoryPage() {
                       </TableCell>
                       <TableCell>{product.sku || "—"}</TableCell>
                       <TableCell>{product.categories?.name || "—"}</TableCell>
+                      <TableCell align="right">฿{(product.price ?? 0).toLocaleString()}</TableCell>
+                      <TableCell align="right">
+                        {product.cost_price ? `฿${product.cost_price.toLocaleString()}` : "—"}
+                      </TableCell>
                       <TableCell align="right">
                         <Typography fontWeight={600} color={isOut ? "error" : isLow ? "warning.main" : "text.primary"}>
                           {product.stock_quantity}
@@ -176,18 +440,49 @@ export default function InventoryPage() {
                         />
                       </TableCell>
                       <TableCell>
-                        <Button size="small" onClick={() => openHistory(product.id)}>
-                          History
-                        </Button>
+                        <Box className="flex gap-1 flex-wrap">
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="primary"
+                            startIcon={<AdjustIcon fontSize="small" />}
+                            onClick={() => openAdjustForProduct(product)}
+                            sx={{ textTransform: "none", fontWeight: 600, minWidth: 80 }}
+                          >
+                            Adjust
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="warning"
+                            startIcon={<EditIcon fontSize="small" />}
+                            onClick={() => openEditProduct(product)}
+                            sx={{ textTransform: "none", fontWeight: 600, minWidth: 68 }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="inherit"
+                            startIcon={<HistoryIcon fontSize="small" />}
+                            onClick={() => openHistory(product.id)}
+                            sx={{ textTransform: "none", fontWeight: 600, minWidth: 80, bgcolor: "grey.50" }}
+                          >
+                            History
+                          </Button>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   );
                 })}
-                {products.length === 0 && (
+                {filteredProducts.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                       <InvIcon sx={{ fontSize: 40, opacity: 0.2, mb: 1 }} />
-                      <Typography color="text.secondary">No inventory-tracked products</Typography>
+                      <Typography color="text.secondary">
+                        {search ? "No products match your search" : "No inventory-tracked products"}
+                      </Typography>
                     </TableCell>
                   </TableRow>
                 )}
@@ -197,11 +492,175 @@ export default function InventoryPage() {
         </CardContent>
       </Card>
 
+      {/* Add New Product Modal */}
+      <Modal
+        open={productFormOpen}
+        onClose={() => setProductFormOpen(false)}
+        title="Add New Product"
+        maxWidth="sm"
+        actions={
+          <>
+            <Button onClick={() => setProductFormOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              onClick={handleAddProduct}
+              disabled={savingProduct || !productForm.name || !productForm.price}
+            >
+              {savingProduct ? "Creating..." : "Create Product"}
+            </Button>
+          </>
+        }
+      >
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <TextField
+              label="Product Name"
+              value={productForm.name}
+              onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+              fullWidth
+              required
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              label="Description"
+              value={productForm.description}
+              onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+              fullWidth
+              multiline
+              rows={2}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <TextField
+              label="Price (฿)"
+              type="number"
+              value={productForm.price}
+              onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+              fullWidth
+              required
+              inputProps={{ min: 0, step: "0.01" }}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <TextField
+              label="Cost Price (฿)"
+              type="number"
+              value={productForm.cost_price}
+              onChange={(e) => setProductForm({ ...productForm, cost_price: e.target.value })}
+              fullWidth
+              inputProps={{ min: 0, step: "0.01" }}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <TextField
+              select
+              label="Category"
+              value={productForm.category_id}
+              onChange={(e) => setProductForm({ ...productForm, category_id: e.target.value })}
+              fullWidth
+            >
+              <MenuItem value="">— None —</MenuItem>
+              {categories.map((cat) => (
+                <MenuItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+          <Grid item xs={6}>
+            <TextField
+              label="SKU"
+              value={productForm.sku}
+              onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
+              fullWidth
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <Box className="flex items-center gap-2">
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<UploadIcon />}
+                disabled={imageUploading}
+                sx={{ textTransform: "none" }}
+              >
+                {imageUploading ? "Uploading..." : "Upload Image"}
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadImage(file, "add");
+                  }}
+                />
+              </Button>
+              {productForm.image_url && (
+                <Box
+                  component="img"
+                  src={productForm.image_url}
+                  alt="Preview"
+                  sx={{ height: 48, width: 48, objectFit: "cover", borderRadius: 1, border: "1px solid #ddd" }}
+                />
+              )}
+              {productForm.image_url && (
+                <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 200 }}>
+                  {productForm.image_url.split("/").pop()}
+                </Typography>
+              )}
+            </Box>
+          </Grid>
+          <Grid item xs={6}>
+            <TextField
+              label="Stock Quantity"
+              type="number"
+              value={productForm.stock_quantity}
+              onChange={(e) => setProductForm({ ...productForm, stock_quantity: e.target.value })}
+              fullWidth
+              inputProps={{ min: 0 }}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <TextField
+              label="Low Stock Threshold"
+              type="number"
+              value={productForm.low_stock_threshold}
+              onChange={(e) => setProductForm({ ...productForm, low_stock_threshold: e.target.value })}
+              fullWidth
+              inputProps={{ min: 0 }}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={productForm.track_inventory}
+                  onChange={(e) => setProductForm({ ...productForm, track_inventory: e.target.checked })}
+                />
+              }
+              label="Track Inventory"
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={productForm.is_active}
+                  onChange={(e) => setProductForm({ ...productForm, is_active: e.target.checked })}
+                />
+              }
+              label="Active"
+            />
+          </Grid>
+        </Grid>
+      </Modal>
+
       {/* Adjust Stock Modal */}
       <Modal
         open={adjustOpen}
         onClose={() => setAdjustOpen(false)}
-        title="Adjust Stock"
+        title={`Adjust Stock — ${adjustProductName}`}
         actions={
           <>
             <Button onClick={() => setAdjustOpen(false)}>Cancel</Button>
@@ -211,22 +670,23 @@ export default function InventoryPage() {
           </>
         }
       >
+        <Box sx={{ mb: 2, p: 1.5, borderRadius: 1, bgcolor: adjustCurrentStock === 0 ? "error.50" : adjustCurrentStock <= adjustThreshold ? "warning.50" : "success.50", border: 1, borderColor: adjustCurrentStock === 0 ? "error.200" : adjustCurrentStock <= adjustThreshold ? "warning.200" : "success.200" }}>
+          <Box className="flex items-center justify-between">
+            <Box>
+              <Typography variant="body2" color="text.secondary">Current Stock</Typography>
+              <Typography variant="h5" fontWeight={700} color={adjustCurrentStock === 0 ? "error.main" : adjustCurrentStock <= adjustThreshold ? "warning.main" : "text.primary"}>
+                {adjustCurrentStock}
+              </Typography>
+            </Box>
+            <Chip
+              label={adjustCurrentStock === 0 ? "Out of Stock" : adjustCurrentStock <= adjustThreshold ? "Low Stock" : "In Stock"}
+              color={adjustCurrentStock === 0 ? "error" : adjustCurrentStock <= adjustThreshold ? "warning" : "success"}
+              size="small"
+            />
+          </Box>
+          <Typography variant="caption" color="text.secondary">Threshold: {adjustThreshold}</Typography>
+        </Box>
         <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <TextField
-              select
-              label="Product"
-              value={adjustProduct}
-              onChange={(e) => setAdjustProduct(e.target.value)}
-              fullWidth
-            >
-              {products.map((p) => (
-                <MenuItem key={p.id} value={p.id}>
-                  {p.name} (current: {p.stock_quantity})
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
           <Grid item xs={6}>
             <TextField
               select
@@ -259,6 +719,160 @@ export default function InventoryPage() {
               fullWidth
               multiline
               rows={2}
+            />
+          </Grid>
+        </Grid>
+      </Modal>
+
+      {/* Edit Product Modal (info only, no stock) */}
+      <Modal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="Edit Product"
+        maxWidth="sm"
+        actions={
+          <>
+            <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              onClick={handleEditProduct}
+              disabled={savingEdit || !editForm.name || !editForm.price}
+            >
+              {savingEdit ? "Saving..." : "Save Changes"}
+            </Button>
+          </>
+        }
+      >
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <TextField
+              label="Product Name"
+              value={editForm.name}
+              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              fullWidth
+              required
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              label="Description"
+              value={editForm.description}
+              onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+              fullWidth
+              multiline
+              rows={2}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <TextField
+              label="Price (฿)"
+              type="number"
+              value={editForm.price}
+              onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+              fullWidth
+              required
+              inputProps={{ min: 0, step: "0.01" }}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <TextField
+              label="Cost Price (฿)"
+              type="number"
+              value={editForm.cost_price}
+              onChange={(e) => setEditForm({ ...editForm, cost_price: e.target.value })}
+              fullWidth
+              inputProps={{ min: 0, step: "0.01" }}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <TextField
+              select
+              label="Category"
+              value={editForm.category_id}
+              onChange={(e) => setEditForm({ ...editForm, category_id: e.target.value })}
+              fullWidth
+            >
+              <MenuItem value="">— None —</MenuItem>
+              {categories.map((cat) => (
+                <MenuItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+          <Grid item xs={6}>
+            <TextField
+              label="SKU"
+              value={editForm.sku}
+              onChange={(e) => setEditForm({ ...editForm, sku: e.target.value })}
+              fullWidth
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <Box className="flex items-center gap-2">
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<UploadIcon />}
+                disabled={editImageUploading}
+                sx={{ textTransform: "none" }}
+              >
+                {editImageUploading ? "Uploading..." : "Upload Image"}
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadImage(file, "edit");
+                  }}
+                />
+              </Button>
+              {editForm.image_url && (
+                <Box
+                  component="img"
+                  src={editForm.image_url}
+                  alt="Preview"
+                  sx={{ height: 48, width: 48, objectFit: "cover", borderRadius: 1, border: "1px solid #ddd" }}
+                />
+              )}
+              {editForm.image_url && (
+                <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 200 }}>
+                  {editForm.image_url.split("/").pop()}
+                </Typography>
+              )}
+            </Box>
+          </Grid>
+          <Grid item xs={6}>
+            <TextField
+              label="Low Stock Threshold"
+              type="number"
+              value={editForm.low_stock_threshold}
+              onChange={(e) => setEditForm({ ...editForm, low_stock_threshold: e.target.value })}
+              fullWidth
+              inputProps={{ min: 0 }}
+            />
+          </Grid>
+          <Grid item xs={3}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={editForm.track_inventory}
+                  onChange={(e) => setEditForm({ ...editForm, track_inventory: e.target.checked })}
+                />
+              }
+              label="Track"
+            />
+          </Grid>
+          <Grid item xs={3}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={editForm.is_active}
+                  onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })}
+                />
+              }
+              label="Active"
             />
           </Grid>
         </Grid>

@@ -60,6 +60,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    // Invalidate session server-side
+    if (session?.access_token) {
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api"}/auth/logout`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        window.location.reload(); // Force reload to clear any in-memory state
+      } catch {
+        // Continue with client-side logout regardless
+      }
+    }
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);

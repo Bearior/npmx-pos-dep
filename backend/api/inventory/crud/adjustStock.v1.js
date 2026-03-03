@@ -47,24 +47,22 @@ module.exports = async (req, res) => {
       return res.status(500).json({ success: false, message: updateError.message });
     }
 
-    // // Record transaction
-    // const { data: transaction, error: txError } = await supabaseAdmin
-    //   .from("stock_transactions")
-    //   .insert({
-    //     product_id,
-    //     type,
-    //     quantity: delta,
-    //     previous_stock: product.stock_quantity,
-    //     new_stock: newStock,
-    //     reason: reason || null,
-    //     performed_by: req.user.id,
-    //   })
-    //   .select()
-    //   .single();
+    // Record transaction in inventory_transactions
+    const { error: txError } = await supabaseAdmin
+      .from("inventory_transactions")
+      .insert({
+        product_id,
+        type,
+        quantity: delta,
+        previous_quantity: product.stock_quantity,
+        new_quantity: newStock,
+        reason: reason || null,
+        performed_by: req.user.id,
+      });
 
-    // if (txError) {
-    //   return res.status(500).json({ success: false, message: txError.message });
-    // }
+    if (txError) {
+      console.error("Failed to record inventory transaction:", txError.message);
+    }
 
     res.status(200).json({
       success: true,

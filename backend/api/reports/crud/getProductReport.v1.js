@@ -34,7 +34,7 @@ module.exports = async (req, res) => {
     // Get order items for those orders
     const { data: items } = await supabaseAdmin
       .from("order_items")
-      .select("product_id, product_name, quantity, subtotal")
+      .select("product_id, product_name, quantity")
       .in("order_id", orderIds);
 
     // Aggregate by product

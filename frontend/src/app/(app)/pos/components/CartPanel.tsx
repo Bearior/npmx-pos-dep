@@ -18,6 +18,7 @@ import {
   Delete as DeleteIcon,
   ShoppingCart as CartIcon,
   DeleteSweep as ClearIcon,
+  DeliveryDining as DeliveryIcon,
 } from "@mui/icons-material";
 import type { CartItem, Discount } from "@/types";
 
@@ -31,11 +32,13 @@ interface Props {
   appliedDiscount: Discount | null;
   customerName: string;
   tableNumber: string;
+  isGrab: boolean;
   onDiscountCodeChange: (v: string) => void;
   onApplyDiscount: () => void;
   onRemoveDiscount: () => void;
   onCustomerNameChange: (v: string) => void;
   onTableNumberChange: (v: string) => void;
+  onGrabChange: (v: boolean) => void;
   onUpdateQuantity: (id: string, delta: number) => void;
   onRemoveItem: (id: string) => void;
   onClearCart: () => void;
@@ -52,11 +55,13 @@ export default function CartPanel({
   appliedDiscount,
   customerName,
   tableNumber,
+  isGrab,
   onDiscountCodeChange,
   onApplyDiscount,
   onRemoveDiscount,
   onCustomerNameChange,
   onTableNumberChange,
+  onGrabChange,
   onUpdateQuantity,
   onRemoveItem,
   onClearCart,
@@ -97,21 +102,37 @@ export default function CartPanel({
         <Divider />
 
         {/* Customer info */}
-        <Box className="flex gap-2 px-4 py-2">
-          <TextField
-            placeholder="Customer"
-            value={customerName}
-            onChange={(e) => onCustomerNameChange(e.target.value)}
-            size="small"
-            className="flex-1"
-          />
-          <TextField
-            placeholder="Table #"
-            value={tableNumber}
-            onChange={(e) => onTableNumberChange(e.target.value)}
-            size="small"
-            sx={{ width: 80 }}
-          />
+        <Box className="px-4 py-4">
+          <Box className="flex gap-2 items-center mb-1">
+            <TextField
+              placeholder="Customer"
+              value={customerName}
+              onChange={(e) => onCustomerNameChange(e.target.value)}
+              size="small"
+              className="flex-1"
+            />
+            <TextField
+              placeholder={isGrab ? "Order #" : "Table #"}
+              value={tableNumber}
+              onChange={(e) => onTableNumberChange(e.target.value)}
+              size="small"
+              sx={{ width: isGrab ? 100 : 80 }}
+            />
+            <Chip
+              icon={<DeliveryIcon />}
+              size="medium"
+              color={isGrab ? "success" : "default"}
+              variant={isGrab ? "filled" : "outlined"}
+              onClick={() => onGrabChange(!isGrab)}
+              sx={{
+                fontWeight: isGrab ? 700 : 400,
+                cursor: "pointer",
+                transition: "all 0.2s",
+                padding: "20px 20px",
+                textAlign: "center",
+              }}
+            />
+          </Box>
         </Box>
 
         <Divider />
@@ -135,14 +156,16 @@ export default function CartPanel({
                   <Typography variant="body2" fontWeight={600} noWrap>
                     {item.product.name}
                   </Typography>
-                  {item.variant && (
+                  {item.variants && item.variants.length > 0 && (
                     <Typography variant="caption" color="text.secondary">
-                      {item.variant.name}
-                      {item.variant.price_modifier > 0
-                        ? ` (+฿${item.variant.price_modifier})`
-                        : item.variant.price_modifier < 0
-                        ? ` (-฿${Math.abs(item.variant.price_modifier)})`
-                        : ""}
+                      {item.variants.map((v) => {
+                        const mod = v.price_modifier > 0
+                          ? ` (+฿${v.price_modifier})`
+                          : v.price_modifier < 0
+                          ? ` (-฿${Math.abs(v.price_modifier)})`
+                          : "";
+                        return v.name + mod;
+                      }).join(", ")}
                     </Typography>
                   )}
                   <Typography variant="caption" display="block" color="primary">

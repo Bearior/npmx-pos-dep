@@ -109,7 +109,7 @@ export default function Sidebar() {
               {profile.full_name}
             </Typography>
             <Typography variant="caption" color="text.secondary" className="capitalize">
-              {profile.role}
+              {profile.role === "admin" ? "Owner" : profile.role}
             </Typography>
           </Box>
         )}

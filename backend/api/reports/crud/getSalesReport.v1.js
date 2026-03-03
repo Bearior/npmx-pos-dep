@@ -19,7 +19,7 @@ module.exports = async (req, res) => {
 
     const { data: orders, error } = await supabaseAdmin
       .from("orders")
-      .select("id, total, subtotal, tax, discount_amount, status, created_at")
+      .select("id, total, subtotal, discount_amount, status, created_at")
       .gte("created_at", startDate)
       .lte("created_at", endDate)
       .eq("status", "completed")

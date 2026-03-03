@@ -7,6 +7,7 @@ const getVariantsV1 = require("./crud/getVariants.v1");
 const createVariantV1 = require("./crud/createVariant.v1");
 const updateVariantV1 = require("./crud/updateVariant.v1");
 const deleteVariantV1 = require("./crud/deleteVariant.v1");
+const uploadImageV1 = require("./crud/uploadImage.v1");
 
 exports.getProducts = getProductsV1;
 exports.getProduct = getProductV1;
@@ -17,3 +18,4 @@ exports.getVariants = getVariantsV1;
 exports.createVariant = createVariantV1;
 exports.updateVariant = updateVariantV1;
 exports.deleteVariant = deleteVariantV1;
+exports.uploadImage = uploadImageV1;

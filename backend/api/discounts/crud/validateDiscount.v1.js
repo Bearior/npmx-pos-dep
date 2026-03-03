@@ -23,15 +23,15 @@ module.exports = async (req, res) => {
     const now = new Date();
 
     // Check date validity
-    if (discount.start_date && new Date(discount.start_date) > now) {
+    if (discount.starts_at && new Date(discount.starts_at) > now) {
       return res.status(400).json({ success: false, message: "Discount not yet active" });
     }
-    if (discount.end_date && new Date(discount.end_date) < now) {
+    if (discount.expires_at && new Date(discount.expires_at) < now) {
       return res.status(400).json({ success: false, message: "Discount has expired" });
     }
 
     // Check usage limit
-    if (discount.max_uses && discount.current_uses >= discount.max_uses) {
+    if (discount.max_uses && discount.times_used >= discount.max_uses) {
       return res.status(400).json({ success: false, message: "Discount usage limit reached" });
     }
 
@@ -47,8 +47,8 @@ module.exports = async (req, res) => {
     let discountAmount = 0;
     if (discount.type === "percentage") {
       discountAmount = order_total ? (order_total * discount.value) / 100 : 0;
-      if (discount.max_discount_amount) {
-        discountAmount = Math.min(discountAmount, discount.max_discount_amount);
+      if (discount.max_discount) {
+        discountAmount = Math.min(discountAmount, discount.max_discount);
       }
     } else {
       discountAmount = discount.value;

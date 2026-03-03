@@ -13,10 +13,10 @@ module.exports = async (req, res) => {
       type,
       value,
       min_order_amount,
-      max_discount_amount,
+      max_discount,
       max_uses,
-      start_date,
-      end_date,
+      starts_at,
+      expires_at,
     } = req.body;
 
     if (!["percentage", "fixed"].includes(type)) {
@@ -36,18 +36,17 @@ module.exports = async (req, res) => {
     const { data, error } = await supabaseAdmin
       .from("discounts")
       .insert({
-        name,
         code: code ? code.toUpperCase() : null,
+        name,
         type,
         value: parseFloat(value),
+        max_discount: max_discount ? parseFloat(max_discount) : null,
         min_order_amount: min_order_amount ? parseFloat(min_order_amount) : null,
-        max_discount_amount: max_discount_amount ? parseFloat(max_discount_amount) : null,
         max_uses: max_uses ? parseInt(max_uses) : null,
-        current_uses: 0,
-        start_date: start_date || null,
-        end_date: end_date || null,
+        times_used: 0,
+        starts_at: starts_at || new Date().toISOString(),
+        expires_at: expires_at || null,
         is_active: true,
-        created_by: req.user.id,
       })
       .select()
       .single();

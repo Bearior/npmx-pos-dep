@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -10,6 +10,7 @@ import {
   TextField,
   Divider,
   Alert,
+  CircularProgress,
 } from "@mui/material";
 import {
   Payments as CashIcon,
@@ -18,6 +19,8 @@ import {
   AccountBalance as TransferIcon,
   CheckCircle as SuccessIcon,
 } from "@mui/icons-material";
+import { QRCodeSVG } from "qrcode.react";
+import generatePayload from "promptpay-qr";
 import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/providers/AuthProvider";
 import api from "@/libs/api";
@@ -39,7 +42,7 @@ interface Props {
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: React.ReactNode }[] = [
   { value: "cash", label: "Cash", icon: <CashIcon /> },
-  { value: "qr", label: "QR Code", icon: <QrIcon /> },
+  { value: "qr", label: "PromptPay", icon: <QrIcon /> },
   { value: "credit_card", label: "Card", icon: <CardIcon /> },
   { value: "transfer", label: "Transfer", icon: <TransferIcon /> },
 ];
@@ -66,6 +69,17 @@ export default function PaymentDialog({
   const [change, setChange] = useState(0);
   const [error, setError] = useState("");
 
+  // PromptPay QR payload
+  const promptPayId = typeof window !== "undefined" ? localStorage.getItem("promptpay_id") || "" : "";
+  const qrPayload = useMemo(() => {
+    if (!promptPayId || total <= 0) return "";
+    try {
+      return generatePayload(promptPayId, { amount: total });
+    } catch {
+      return "";
+    }
+  }, [promptPayId, total]);
+
   const handlePay = async () => {
     if (!session?.access_token) return;
     setProcessing(true);
@@ -76,8 +90,8 @@ export default function PaymentDialog({
       const orderBody = {
         items: cart.map((item) => ({
           product_id: item.product.id,
-          variant_id: item.variant?.id,
-          variant_info: item.variant?.name,
+          variant_id: item.variants?.[0]?.id,
+          variant_info: item.variants?.map((v) => v.name).join(", "),
           quantity: item.quantity,
           notes: item.notes,
         })),
@@ -216,8 +230,61 @@ export default function PaymentDialog({
             </Box>
           )}
 
-          {/* QR / Card / Transfer: reference number */}
-          {method !== "cash" && (
+          {/* QR PromptPay */}
+          {method === "qr" && (
+            <Box className="mb-3">
+              {!promptPayId ? (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  ยังไม่ได้ตั้งค่า PromptPay ID — กรุณาไปตั้งค่าที่หน้า Settings
+                </Alert>
+              ) : !qrPayload ? (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  ไม่สามารถสร้าง QR Code ได้ — กรุณาตรวจสอบ PromptPay ID
+                </Alert>
+              ) : (
+                <Box className="flex flex-col items-center">
+                  <Box
+                    sx={{
+                      p: 2.5,
+                      bgcolor: "#fff",
+                      borderRadius: 3,
+                      border: "2px solid",
+                      borderColor: "primary.main",
+                      display: "inline-flex",
+                      mb: 2,
+                    }}
+                  >
+                    <QRCodeSVG
+                      value={qrPayload}
+                      size={220}
+                      level="M"
+                      marginSize={1}
+                    />
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    สแกน QR Code เพื่อชำระเงินผ่าน PromptPay
+                  </Typography>
+                  <Typography variant="h5" fontWeight={700} color="primary">
+                    ฿{total.toFixed(2)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                    PromptPay: {promptPayId.replace(/(\d{3})(\d{3})(\d{4})/, "$1-$2-$3")}
+                  </Typography>
+                </Box>
+              )}
+              <TextField
+                label="Reference / Slip No. (optional)"
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+                fullWidth
+                size="small"
+                sx={{ mt: 2 }}
+              />
+            </Box>
+          )}
+
+          {/* Card / Transfer: reference number */}
+          {method !== "cash" && method !== "qr" && (
             <TextField
               label="Reference Number (optional)"
               value={reference}

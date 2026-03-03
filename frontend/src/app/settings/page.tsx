@@ -14,7 +14,7 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
-import { Save as SaveIcon } from "@mui/icons-material";
+import { Save as SaveIcon, QrCode as QrIcon } from "@mui/icons-material";
 import { useAuth } from "@/providers/AuthProvider";
 import api from "@/libs/api";
 
@@ -26,6 +26,22 @@ export default function SettingsPage() {
   const [phone, setPhone] = useState(profile?.phone || "");
   const [saving, setSaving] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" });
+
+  // PromptPay config (localStorage)
+  const [promptPayId, setPromptPayId] = useState(() =>
+    typeof window !== "undefined" ? localStorage.getItem("promptpay_id") || "" : ""
+  );
+
+  const handleSavePromptPay = () => {
+    const cleaned = promptPayId.replace(/[^0-9]/g, "");
+    if (cleaned.length !== 10 && cleaned.length !== 13) {
+      setSnackbar({ open: true, message: "PromptPay ID ต้องเป็นเบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก", severity: "error" });
+      return;
+    }
+    localStorage.setItem("promptpay_id", cleaned);
+    setPromptPayId(cleaned);
+    setSnackbar({ open: true, message: "บันทึก PromptPay ID เรียบร้อย!", severity: "success" });
+  };
 
   const handleSave = async () => {
     if (!token) return;
@@ -103,6 +119,43 @@ export default function SettingsPage() {
                 sx={{ mt: 3 }}
               >
                 {saving ? "Saving..." : "Save Changes"}
+              </Button>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* PromptPay Config */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Box className="flex items-center gap-2 mb-1">
+                <QrIcon color="primary" />
+                <Typography variant="h6" fontWeight={600}>
+                  PromptPay QR Payment
+                </Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                ใส่เบอร์โทรศัพท์ (10 หลัก) หรือเลขบัตรประชาชน (13 หลัก) เพื่อใช้สร้าง QR Code รับชำระเงิน
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+
+              <TextField
+                label="PromptPay ID"
+                value={promptPayId}
+                onChange={(e) => setPromptPayId(e.target.value)}
+                fullWidth
+                placeholder="0812345678 หรือ 1234567890123"
+                helperText={promptPayId ? `${promptPayId.replace(/[^0-9]/g, "").length} หลัก` : ""}
+              />
+
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={<SaveIcon />}
+                onClick={handleSavePromptPay}
+                sx={{ mt: 2 }}
+              >
+                บันทึก PromptPay
               </Button>
             </CardContent>
           </Card>
