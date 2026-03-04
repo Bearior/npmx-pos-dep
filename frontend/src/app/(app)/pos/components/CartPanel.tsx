@@ -19,8 +19,10 @@ import {
   ShoppingCart as CartIcon,
   DeleteSweep as ClearIcon,
   DeliveryDining as DeliveryIcon,
+  Receipt as ReceiptIcon,
+  ReceiptLong as NoReceiptIcon,
 } from "@mui/icons-material";
-import type { CartItem, Discount } from "@/types";
+import type { CartItem, Discount, ProductVariant } from "@/types";
 import { useLanguage } from "@/providers/LanguageProvider";
 
 interface Props {
@@ -34,12 +36,14 @@ interface Props {
   customerName: string;
   tableNumber: string;
   isGrab: boolean;
+  includeVat: boolean;
   onDiscountCodeChange: (v: string) => void;
   onApplyDiscount: () => void;
   onRemoveDiscount: () => void;
   onCustomerNameChange: (v: string) => void;
   onTableNumberChange: (v: string) => void;
   onGrabChange: (v: boolean) => void;
+  onIncludeVatChange: (v: boolean) => void;
   onUpdateQuantity: (id: string, delta: number) => void;
   onRemoveItem: (id: string) => void;
   onClearCart: () => void;
@@ -57,18 +61,25 @@ export default function CartPanel({
   customerName,
   tableNumber,
   isGrab,
+  includeVat,
   onDiscountCodeChange,
   onApplyDiscount,
   onRemoveDiscount,
   onCustomerNameChange,
   onTableNumberChange,
   onGrabChange,
+  onIncludeVatChange,
   onUpdateQuantity,
   onRemoveItem,
   onClearCart,
   onCheckout,
 }: Props) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+
+  // Helper to get localized variant name
+  const variantName = (v: ProductVariant) =>
+    locale === "th" && v.name_th ? v.name_th : v.name;
+
   return (
     <Card
       className="flex flex-col"
@@ -166,7 +177,7 @@ export default function CartPanel({
                           : v.price_modifier < 0
                           ? ` (-฿${Math.abs(v.price_modifier)})`
                           : "";
-                        return v.name + mod;
+                        return variantName(v) + mod;
                       }).join(", ")}
                     </Typography>
                   )}
@@ -259,9 +270,20 @@ export default function CartPanel({
             </Box>
           )}
           <Box className="flex justify-between">
-            <Typography variant="body2" color="text.secondary">
-              {t("cart.vat")}
-            </Typography>
+            <Box className="flex items-center gap-1">
+              <Typography variant="body2" color="text.secondary">
+                {t("cart.vat")}
+              </Typography>
+              <Chip
+                icon={includeVat ? <ReceiptIcon fontSize="small" /> : <NoReceiptIcon fontSize="small" />}
+                label={includeVat ? t("cart.vatIncluded") : t("cart.noVat")}
+                size="small"
+                color={includeVat ? "primary" : "default"}
+                variant={includeVat ? "filled" : "outlined"}
+                onClick={() => onIncludeVatChange(!includeVat)}
+                sx={{ cursor: "pointer", fontWeight: includeVat ? 700 : 400 }}
+              />
+            </Box>
             <Typography variant="body2">฿{taxAmount.toFixed(2)}</Typography>
           </Box>
           <Divider />

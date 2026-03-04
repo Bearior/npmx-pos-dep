@@ -35,6 +35,7 @@ import {
   CloudUpload as UploadIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
+  Delete as DeleteIcon,
 } from "@mui/icons-material";
 import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
@@ -84,6 +85,8 @@ export default function InventoryPage() {
   const [editForm, setEditForm] = useState(emptyProductForm);
   const [savingEdit, setSavingEdit] = useState(false);
   const [editImageUploading, setEditImageUploading] = useState(false);
+  const [deletingProduct, setDeletingProduct] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   // Adjust dialog
   const [adjustOpen, setAdjustOpen] = useState(false);
@@ -236,7 +239,7 @@ export default function InventoryPage() {
         },
         token
       );
-      setSnackbar({ open: true, message: "Product updated!", severity: "success" });
+      setSnackbar({ open: true, message: t("inv.productUpdated"), severity: "success" });
       setEditOpen(false);
       fetchData();
     } catch (err) {
@@ -244,6 +247,24 @@ export default function InventoryPage() {
       setSnackbar({ open: true, message, severity: "error" });
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  // ---- Delete Product ----
+  const handleDeleteProduct = async () => {
+    if (!token || !editProductId) return;
+    setDeletingProduct(true);
+    try {
+      await api.delete(`/products/${editProductId}`, token);
+      setSnackbar({ open: true, message: t("inv.productDeleted"), severity: "success" });
+      setDeleteConfirmOpen(false);
+      setEditOpen(false);
+      fetchData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Delete failed";
+      setSnackbar({ open: true, message, severity: "error" });
+    } finally {
+      setDeletingProduct(false);
     }
   };
 
@@ -765,19 +786,30 @@ export default function InventoryPage() {
       <Modal
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        title="Edit Product"
+        title={t("product.editProduct")}
         maxWidth="sm"
         actions={
-          <>
-            <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+          <Box className="flex justify-between w-full">
             <Button
-              variant="contained"
-              onClick={handleEditProduct}
-              disabled={savingEdit || !editForm.name || !editForm.price}
+              color="error"
+              variant="outlined"
+              startIcon={<DeleteIcon />}
+              onClick={() => setDeleteConfirmOpen(true)}
+              sx={{ textTransform: "none" }}
             >
-              {savingEdit ? "Saving..." : "Save Changes"}
+              {t("common.delete")}
             </Button>
-          </>
+            <Box className="flex gap-2">
+              <Button onClick={() => setEditOpen(false)}>{t("common.cancel")}</Button>
+              <Button
+                variant="contained"
+                onClick={handleEditProduct}
+                disabled={savingEdit || !editForm.name || !editForm.price}
+              >
+                {savingEdit ? t("product.saving") : t("product.saveChanges")}
+              </Button>
+            </Box>
+          </Box>
         }
       >
         <Grid container spacing={2}>
@@ -913,6 +945,29 @@ export default function InventoryPage() {
             />
           </Grid>
         </Grid>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        title={t("inv.deleteConfirmTitle")}
+        maxWidth="xs"
+        actions={
+          <>
+            <Button onClick={() => setDeleteConfirmOpen(false)}>{t("common.cancel")}</Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={handleDeleteProduct}
+              disabled={deletingProduct}
+            >
+              {deletingProduct ? t("common.loading") : t("common.delete")}
+            </Button>
+          </>
+        }
+      >
+        <Typography>{t("inv.deleteConfirmMsg")}</Typography>
       </Modal>
 
       {/* History Modal */}

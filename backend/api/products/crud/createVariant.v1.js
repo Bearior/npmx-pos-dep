@@ -7,13 +7,14 @@ const { supabaseAdmin } = require("../../../config/supabase");
  */
 module.exports = async (req, res) => {
   try {
-    const { name, type, price_modifier, is_active, sort_order } = req.body;
+    const { name, name_th, type, price_modifier, is_active, sort_order } = req.body;
 
     const { data, error } = await supabaseAdmin
       .from("product_variants")
       .insert({
         product_id: req.params.id,
         name,
+        name_th: name_th || null,
         type: type || "size",
         price_modifier: parseFloat(price_modifier),
         is_active: is_active !== false,

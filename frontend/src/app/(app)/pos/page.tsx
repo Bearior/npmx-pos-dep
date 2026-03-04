@@ -32,6 +32,7 @@ export default function POSPage() {
   const [customerName, setCustomerName] = useState("");
   const [tableNumber, setTableNumber] = useState("");
   const [isGrab, setIsGrab] = useState(false);
+  const [includeVat, setIncludeVat] = useState(true);
 
   // Dialogs
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -182,7 +183,7 @@ export default function POSPage() {
   }
   const afterDiscount = Math.max(0, subtotal - discountAmount);
   const taxRate = 0.07;
-  const taxAmount = parseFloat((afterDiscount * taxRate).toFixed(2));
+  const taxAmount = includeVat ? parseFloat((afterDiscount * taxRate).toFixed(2)) : 0;
   const total = parseFloat((afterDiscount + taxAmount).toFixed(2));
 
   // Submit order
@@ -261,6 +262,8 @@ export default function POSPage() {
           setIsGrab(checked);
           setTableNumber("");
         }}
+        includeVat={includeVat}
+        onIncludeVatChange={setIncludeVat}
         onUpdateQuantity={updateCartQuantity}
         onRemoveItem={removeFromCart}
         onClearCart={clearCart}

@@ -53,6 +53,7 @@ export interface ProductVariant {
   id: string;
   product_id: string;
   name: string;
+  name_th?: string;
   type: "size" | "add_on" | "color" | "custom";
   price_modifier: number;
   is_active: boolean;

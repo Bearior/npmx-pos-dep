@@ -15,7 +15,9 @@ import {
 } from "@mui/material";
 import { CheckCircle } from "@mui/icons-material";
 import Modal from "@/components/ui/Modal";
+import { useLanguage } from "@/providers/LanguageProvider";
 import type { Product, ProductVariant } from "@/types";
+import type { TranslationKey } from "@/libs/i18n/translations";
 
 // Types that allow single-select (pick one)
 const SINGLE_SELECT_TYPES = new Set(["size", "color"]);
@@ -28,7 +30,12 @@ interface Props {
 }
 
 export default function VariantSelector({ product, open, onClose, onConfirm }: Props) {
+  const { t, locale } = useLanguage();
   const variants = product.product_variants?.filter((v) => v.is_active) || [];
+
+  // Helper to get localized variant name
+  const variantName = (v: ProductVariant) =>
+    locale === "th" && v.name_th ? v.name_th : v.name;
 
   // Group variants by type
   const grouped: Record<string, ProductVariant[]> = useMemo(() => {
@@ -45,11 +52,11 @@ export default function VariantSelector({ product, open, onClose, onConfirm }: P
   // Multi-select state (add_on, custom): store Set of selected ids per type
   const [multiSelections, setMultiSelections] = useState<Record<string, Set<string>>>({});
 
-  const typeLabels: Record<string, string> = {
-    size: "Size (pick one)",
-    add_on: "Add-ons (pick many)",
-    color: "Color (pick one)",
-    custom: "Options (pick many)",
+  const typeLabels: Record<string, TranslationKey> = {
+    size: "variant.sizePickOne",
+    add_on: "variant.addOnPickMany",
+    color: "variant.colorPickOne",
+    custom: "variant.optionsPickMany",
   };
 
   const isSingleSelect = (type: string) => SINGLE_SELECT_TYPES.has(type);
@@ -104,7 +111,7 @@ export default function VariantSelector({ product, open, onClose, onConfirm }: P
   };
 
   const priceLabel = (variant: ProductVariant) => {
-    if (variant.price_modifier === 0) return "Included";
+    if (variant.price_modifier === 0) return t("variant.included");
     if (variant.price_modifier > 0) return `+฿${variant.price_modifier}`;
     return `-฿${Math.abs(variant.price_modifier)}`;
   };
@@ -113,13 +120,13 @@ export default function VariantSelector({ product, open, onClose, onConfirm }: P
     <Modal open={open} onClose={onClose} title={product.name} maxWidth="xs">
       <Box>
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          Base price: ฿{product.price.toFixed(2)}
+          {t("variant.basePrice")}: ฿{product.price.toFixed(2)}
         </Typography>
 
         {Object.entries(grouped).map(([type, items]) => (
           <Box key={type} className="mb-4">
             <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-              {typeLabels[type] || type}
+              {t(typeLabels[type] || (type as TranslationKey)) || type}
             </Typography>
             <List disablePadding>
               {items.map((variant) => {
@@ -151,7 +158,7 @@ export default function VariantSelector({ product, open, onClose, onConfirm }: P
                       {isSingleSelect(type) && selected && (
                         <CheckCircle color="primary" fontSize="small" sx={{ mr: 1 }} />
                       )}
-                      <ListItemText primary={variant.name} />
+                      <ListItemText primary={variantName(variant)} />
                       <Chip
                         label={priceLabel(variant)}
                         size="small"
@@ -171,7 +178,7 @@ export default function VariantSelector({ product, open, onClose, onConfirm }: P
         {/* Summary */}
         <Box className="flex justify-between items-center mb-3">
           <Typography variant="body2" color="text.secondary">
-            Total price
+            {t("variant.totalPrice")}
           </Typography>
           <Typography variant="h6" fontWeight={700} color="primary">
             ฿{totalPrice.toFixed(2)}
@@ -181,7 +188,7 @@ export default function VariantSelector({ product, open, onClose, onConfirm }: P
         {selectedVariants.length > 0 && (
           <Box className="mb-3">
             <Typography variant="caption" color="text.secondary">
-              Selected: {selectedVariants.map((v) => v.name).join(", ")}
+              {t("variant.selected")}: {selectedVariants.map((v) => variantName(v)).join(", ")}
             </Typography>
           </Box>
         )}
@@ -195,8 +202,8 @@ export default function VariantSelector({ product, open, onClose, onConfirm }: P
           sx={{ mb: 1, fontWeight: 700 }}
         >
           {selectedVariants.length > 0
-            ? `Confirm — ฿${totalPrice.toFixed(2)}`
-            : `Add without options — ฿${product.price.toFixed(2)}`}
+            ? `${t("variant.confirm")} — ฿${totalPrice.toFixed(2)}`
+            : `${t("variant.addWithoutOptions")} — ฿${product.price.toFixed(2)}`}
         </Button>
       </Box>
     </Modal>

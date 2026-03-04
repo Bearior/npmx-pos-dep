@@ -27,6 +27,18 @@ const translations = {
   "pos.lowStock": { en: "Low: {0} left", th: "เหลือ: {0} ชิ้น" },
   "pos.lowLeft": { en: "left", th: "เหลือ" },
 
+  // -------- Variant Selector --------
+  "variant.basePrice": { en: "Base price", th: "ราคาพื้นฐาน" },
+  "variant.totalPrice": { en: "Total price", th: "ราคารวม" },
+  "variant.selected": { en: "Selected", th: "ที่เลือก" },
+  "variant.confirm": { en: "Confirm", th: "ยืนยัน" },
+  "variant.addWithoutOptions": { en: "Add without options", th: "เพิ่มไม่มีตัวเลือก" },
+  "variant.included": { en: "Included", th: "รวมแล้ว" },
+  "variant.sizePickOne": { en: "Size (pick one)", th: "ขนาด (เลือก 1)" },
+  "variant.addOnPickMany": { en: "Add-ons (pick many)", th: "เพิ่มเติม (เลือกได้หลายอย่าง)" },
+  "variant.colorPickOne": { en: "Color (pick one)", th: "สี (เลือก 1)" },
+  "variant.optionsPickMany": { en: "Options (pick many)", th: "ตัวเลือก (เลือกได้หลายอย่าง)" },
+
   // -------- Cart --------
   "cart.title": { en: "Cart", th: "ตะกร้า" },
   "cart.empty": { en: "Cart is empty", th: "ตะกร้าว่าง" },
@@ -34,6 +46,8 @@ const translations = {
   "cart.subtotal": { en: "Subtotal", th: "รวมย่อย" },
   "cart.discount": { en: "Discount", th: "ส่วนลด" },
   "cart.vat": { en: "VAT (7%)", th: "ภาษี (7%)" },
+  "cart.vatIncluded": { en: "VAT Included", th: "รวม VAT" },
+  "cart.noVat": { en: "No VAT", th: "ไม่รวม VAT" },
   "cart.total": { en: "Total", th: "ยอดรวม" },
   "cart.charge": { en: "Charge", th: "เรียกเก็บ" },
   "cart.customer": { en: "Customer", th: "ลูกค้า" },
@@ -73,6 +87,9 @@ const translations = {
   "inv.productCreated": { en: "Product created successfully!", th: "สร้างสินค้าสำเร็จ!" },
   "inv.productUpdated": { en: "Product updated!", th: "อัปเดตสินค้าแล้ว!" },
   "inv.stockAdjusted": { en: "Stock adjusted successfully", th: "ปรับสต็อกสำเร็จ" },
+  "inv.productDeleted": { en: "Product deleted!", th: "ลบสินค้าแล้ว!" },
+  "inv.deleteConfirmTitle": { en: "Delete Product", th: "ลบสินค้า" },
+  "inv.deleteConfirmMsg": { en: "Are you sure you want to delete this product? This action will deactivate the product.", th: "คุณแน่ใจหรือไม่ว่าต้องการลบสินค้านี้? สินค้าจะถูกปิดใช้งาน" },
 
   // -------- Add / Edit Product Modal --------
   "product.name": { en: "Product Name", th: "ชื่อสินค้า" },
