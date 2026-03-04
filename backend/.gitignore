@@ -5,3 +5,5 @@ config/config.env
 .env
 *.log
 dist/
+
+package-lock.json
