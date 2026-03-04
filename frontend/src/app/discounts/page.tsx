@@ -22,6 +22,7 @@ import {
 } from "@mui/material";
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from "@mui/icons-material";
 import { useAuth } from "@/providers/AuthProvider";
+import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
 import Modal from "@/components/ui/Modal";
 import LoadingScreen from "@/components/ui/LoadingScreen";
@@ -29,6 +30,7 @@ import type { Discount } from "@/types";
 
 export default function DiscountsPage() {
   const { session } = useAuth();
+  const { t } = useLanguage();
   const token = session?.access_token;
 
   const [discounts, setDiscounts] = useState<Discount[]>([]);
@@ -84,7 +86,7 @@ export default function DiscountsPage() {
         },
         token
       );
-      setSnackbar({ open: true, message: "Discount created!", severity: "success" });
+      setSnackbar({ open: true, message: t("discounts.created"), severity: "success" });
       setFormOpen(false);
       setForm({ code: "", name: "", type: "percentage", value: "", max_discount: "", min_order_amount: "", max_uses: "", expires_at: "" });
       fetchDiscounts();
@@ -97,7 +99,7 @@ export default function DiscountsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!token || !confirm("Delete this discount?")) return;
+    if (!token || !confirm(t("discounts.deleteConfirm"))) return;
     try {
       await api.delete(`/discounts/${id}`, token);
       fetchDiscounts();
@@ -106,16 +108,16 @@ export default function DiscountsPage() {
     }
   };
 
-  if (loading) return <LoadingScreen message="Loading discounts..." />;
+  if (loading) return <LoadingScreen message={t("discounts.loading")} />;
 
   return (
     <Box>
       <Box className="flex items-center justify-between mb-4">
         <Typography variant="h5" fontWeight={700}>
-          Discounts & Promo Codes
+          {t("discounts.title")}
         </Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setFormOpen(true)}>
-          New Discount
+          {t("discounts.newDiscount")}
         </Button>
       </Box>
 
@@ -125,14 +127,14 @@ export default function DiscountsPage() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Code</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell align="right">Value</TableCell>
-                  <TableCell align="right">Used</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Expires</TableCell>
-                  <TableCell>Actions</TableCell>
+                  <TableCell>{t("discounts.code")}</TableCell>
+                  <TableCell>{t("discounts.name")}</TableCell>
+                  <TableCell>{t("discounts.type")}</TableCell>
+                  <TableCell align="right">{t("discounts.value")}</TableCell>
+                  <TableCell align="right">{t("discounts.used")}</TableCell>
+                  <TableCell>{t("discounts.status")}</TableCell>
+                  <TableCell>{t("discounts.expires")}</TableCell>
+                  <TableCell>{t("discounts.actions")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -159,13 +161,13 @@ export default function DiscountsPage() {
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={d.is_active ? "Active" : "Inactive"}
+                        label={d.is_active ? t("discounts.active") : t("discounts.inactive")}
                         color={d.is_active ? "success" : "default"}
                         size="small"
                       />
                     </TableCell>
                     <TableCell>
-                      {d.expires_at ? new Date(d.expires_at).toLocaleDateString() : "Never"}
+                      {d.expires_at ? new Date(d.expires_at).toLocaleDateString() : t("discounts.never")}
                     </TableCell>
                     <TableCell>
                       <IconButton size="small" color="error" onClick={() => handleDelete(d.id)}>
@@ -184,12 +186,12 @@ export default function DiscountsPage() {
       <Modal
         open={formOpen}
         onClose={() => setFormOpen(false)}
-        title="New Discount"
+        title={t("discounts.newDiscount")}
         actions={
           <>
-            <Button onClick={() => setFormOpen(false)}>Cancel</Button>
+            <Button onClick={() => setFormOpen(false)}>{t("common.cancel")}</Button>
             <Button variant="contained" onClick={handleSave} disabled={saving || !form.code || !form.value}>
-              {saving ? "Creating..." : "Create"}
+              {saving ? t("discounts.creating") : t("common.create")}
             </Button>
           </>
         }
@@ -197,7 +199,7 @@ export default function DiscountsPage() {
         <Grid container spacing={2}>
           <Grid item xs={6}>
             <TextField
-              label="Code"
+              label={t("discounts.code")}
               value={form.code}
               onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
               fullWidth
@@ -206,7 +208,7 @@ export default function DiscountsPage() {
           </Grid>
           <Grid item xs={6}>
             <TextField
-              label="Name"
+              label={t("discounts.name")}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               fullWidth
@@ -215,18 +217,18 @@ export default function DiscountsPage() {
           <Grid item xs={6}>
             <TextField
               select
-              label="Type"
+              label={t("discounts.type")}
               value={form.type}
               onChange={(e) => setForm({ ...form, type: e.target.value as "percentage" | "fixed" })}
               fullWidth
             >
-              <MenuItem value="percentage">Percentage (%)</MenuItem>
-              <MenuItem value="fixed">Fixed Amount (฿)</MenuItem>
+              <MenuItem value="percentage">{t("discounts.percentage")}</MenuItem>
+              <MenuItem value="fixed">{t("discounts.fixedAmount")}</MenuItem>
             </TextField>
           </Grid>
           <Grid item xs={6}>
             <TextField
-              label="Value"
+              label={t("discounts.value")}
               type="number"
               value={form.value}
               onChange={(e) => setForm({ ...form, value: e.target.value })}
@@ -236,7 +238,7 @@ export default function DiscountsPage() {
           </Grid>
           <Grid item xs={6}>
             <TextField
-              label="Max Discount (฿)"
+              label={t("discounts.maxDiscount")}
               type="number"
               value={form.max_discount}
               onChange={(e) => setForm({ ...form, max_discount: e.target.value })}
@@ -245,7 +247,7 @@ export default function DiscountsPage() {
           </Grid>
           <Grid item xs={6}>
             <TextField
-              label="Min Order Amount (฿)"
+              label={t("discounts.minOrderAmount")}
               type="number"
               value={form.min_order_amount}
               onChange={(e) => setForm({ ...form, min_order_amount: e.target.value })}
@@ -254,7 +256,7 @@ export default function DiscountsPage() {
           </Grid>
           <Grid item xs={6}>
             <TextField
-              label="Max Uses"
+              label={t("discounts.maxUses")}
               type="number"
               value={form.max_uses}
               onChange={(e) => setForm({ ...form, max_uses: e.target.value })}
@@ -263,7 +265,7 @@ export default function DiscountsPage() {
           </Grid>
           <Grid item xs={6}>
             <TextField
-              label="Expires"
+              label={t("discounts.expires")}
               type="date"
               value={form.expires_at}
               onChange={(e) => setForm({ ...form, expires_at: e.target.value })}

@@ -21,6 +21,7 @@ import {
   AttachMoney as AvgIcon,
 } from "@mui/icons-material";
 import { useAuth } from "@/providers/AuthProvider";
+import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
 import StatCard from "@/components/ui/StatCard";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -29,6 +30,7 @@ import type { DashboardSummary, DashboardAlert, Order } from "@/types";
 
 export default function DashboardPage() {
   const { session } = useAuth();
+  const { t } = useLanguage();
   const token = session?.access_token;
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -57,12 +59,12 @@ export default function DashboardPage() {
     fetchDashboard();
   }, [token]);
 
-  if (loading) return <LoadingScreen message="Loading dashboard..." />;
+  if (loading) return <LoadingScreen message={t("dashboard.loading")} />;
 
   return (
     <Box>
       <Typography variant="h5" fontWeight={700} className="mb-4">
-        Dashboard
+        {t("dashboard.title")}
       </Typography>
 
       {/* KPI Cards */}
@@ -74,13 +76,13 @@ export default function DashboardPage() {
               <Box className="flex items-start justify-between">
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Today&apos;s Revenue
+                    {t("dashboard.todayRevenue")}
                   </Typography>
                   <Typography variant="h4" fontWeight={700} color="#ea5c1f">
                     ฿{(summary?.today.revenue ?? 0).toLocaleString()}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {summary?.today.completed_orders ?? 0} completed orders
+                    {summary?.today.completed_orders ?? 0} {t("dashboard.completedOrders")}
                   </Typography>
                 </Box>
                 <Box sx={{ p: 1, borderRadius: 2, bgcolor: "#ea5c1f14", color: "#ea5c1f", display: "flex" }}>
@@ -119,13 +121,13 @@ export default function DashboardPage() {
               <Box className="flex items-start justify-between">
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Monthly Revenue
+                    {t("dashboard.monthlyRevenue")}
                   </Typography>
                   <Typography variant="h4" fontWeight={700} color="#22c55e">
                     ฿{(summary?.month.revenue ?? 0).toLocaleString()}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {summary?.month.completed_orders ?? 0} completed orders
+                    {summary?.month.completed_orders ?? 0} {t("dashboard.completedOrders")}
                   </Typography>
                 </Box>
                 <Box sx={{ p: 1, borderRadius: 2, bgcolor: "#22c55e14", color: "#22c55e", display: "flex" }}>
@@ -159,7 +161,7 @@ export default function DashboardPage() {
 
         <Grid item xs={6} md={3}>
           <StatCard
-            title="Active Orders"
+            title={t("dashboard.activeOrders")}
             value={summary?.active_orders || 0}
             icon={<OrderIcon />}
             color="#3b82f6"
@@ -167,7 +169,7 @@ export default function DashboardPage() {
         </Grid>
         <Grid item xs={6} md={3}>
           <StatCard
-            title="Low Stock Items"
+            title={t("dashboard.lowStockItems")}
             value={summary?.low_stock_count || 0}
             icon={<AlertIcon />}
             color="#ef4444"
@@ -181,7 +183,7 @@ export default function DashboardPage() {
           <Card>
             <CardContent>
               <Typography variant="h6" fontWeight={600} gutterBottom>
-                Recent Orders
+                {t("dashboard.recentOrders")}
               </Typography>
               <List disablePadding>
                 {recentOrders.map((order) => (
@@ -194,7 +196,7 @@ export default function DashboardPage() {
                       primary={
                         <Typography variant="body2" fontWeight={600}>
                           {order.order_number}
-                          {order.table_number && ` · Table ${order.table_number}`}
+                          {order.table_number && ` · ${t("dashboard.table")} ${order.table_number}`}
                         </Typography>
                       }
                       secondary={
@@ -213,7 +215,7 @@ export default function DashboardPage() {
                 ))}
                 {recentOrders.length === 0 && (
                   <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: "center" }}>
-                    No recent orders
+                    {t("dashboard.noRecentOrders")}
                   </Typography>
                 )}
               </List>
@@ -228,7 +230,7 @@ export default function DashboardPage() {
               <Box className="flex items-center gap-2 mb-2">
                 <AlertIcon color="warning" />
                 <Typography variant="h6" fontWeight={600}>
-                  Alerts
+                  {t("dashboard.alerts")}
                 </Typography>
                 {alerts.length > 0 && (
                   <Chip label={alerts.length} size="small" color="warning" />
@@ -236,7 +238,7 @@ export default function DashboardPage() {
               </Box>
               {alerts.length === 0 ? (
                 <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: "center" }}>
-                  No alerts — everything looks good!
+                  {t("dashboard.noAlerts")}
                 </Typography>
               ) : (
                 alerts.map((alert, i) => (

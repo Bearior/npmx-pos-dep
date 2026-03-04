@@ -39,6 +39,7 @@ export interface Product {
   sku?: string;
   image_url?: string;
   is_active: boolean;
+  visible_on_pos: boolean;
   track_inventory: boolean;
   stock_quantity: number;
   low_stock_threshold: number;

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Box, Typography, TextField, InputAdornment, Tabs, Tab, Snackbar, Alert } from "@mui/material";
 import { Search as SearchIcon } from "@mui/icons-material";
 import { useAuth } from "@/providers/AuthProvider";
+import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
 import type { Product, Category, CartItem, Discount, ProductVariant } from "@/types";
 import ProductGrid from "./components/ProductGrid";
@@ -14,6 +15,7 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 
 export default function POSPage() {
   const { session } = useAuth();
+  const { t } = useLanguage();
   const token = session?.access_token;
 
   // Data
@@ -62,10 +64,11 @@ export default function POSPage() {
     fetchData();
   }, [token]);
 
-  // Filtered products — out of stock sorted to bottom
+  // Filtered products — hidden from POS and out of stock sorted to bottom
   const filteredProducts = products
     .filter((p) => {
       if (!p.is_active) return false;
+      if (p.visible_on_pos === false) return false;
       if (selectedCategory !== "all" && p.category_id !== selectedCategory) return false;
       if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
@@ -186,10 +189,10 @@ export default function POSPage() {
   const handleOrderComplete = async () => {
     setPaymentOpen(false);
     clearCart();
-    setSnackbar({ open: true, message: "Order completed successfully!", severity: "success" });
+    setSnackbar({ open: true, message: t("pos.orderCompleted"), severity: "success" });
   };
 
-  if (loading) return <LoadingScreen message="Loading POS..." />;
+  if (loading) return <LoadingScreen message={t("pos.loading")} />;
 
   return (
     <Box className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-48px)]">
@@ -197,7 +200,7 @@ export default function POSPage() {
       <Box className="flex-1 flex flex-col min-w-0">
         {/* Search */}
         <TextField
-          placeholder="Search products..."
+          placeholder={t("pos.searchProducts")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           InputProps={{
@@ -219,7 +222,7 @@ export default function POSPage() {
           scrollButtons="auto"
           sx={{ mb: 2, minHeight: 42 }}
         >
-          <Tab label="All" value="all" sx={{ minHeight: 42 }} />
+          <Tab label={t("pos.all")} value="all" sx={{ minHeight: 42 }} />
           {categories.map((cat) => (
             <Tab key={cat.id} label={cat.name} value={cat.id} sx={{ minHeight: 42 }} />
           ))}
@@ -229,7 +232,7 @@ export default function POSPage() {
         <Box className="flex-1 overflow-auto">
           {filteredProducts.length === 0 ? (
             <Box className="flex items-center justify-center h-40">
-              <Typography color="text.secondary">No products found</Typography>
+              <Typography color="text.secondary">{t("pos.noProducts")}</Typography>
             </Box>
           ) : (
             <ProductGrid products={filteredProducts} onProductClick={handleProductClick} />

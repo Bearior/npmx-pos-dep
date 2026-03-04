@@ -25,6 +25,7 @@ import {
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import { useAuth } from "@/providers/AuthProvider";
+import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
 import StatusBadge from "@/components/ui/StatusBadge";
 import LoadingScreen from "@/components/ui/LoadingScreen";
@@ -32,6 +33,7 @@ import type { Order, OrderStatus } from "@/types";
 
 function OrderRow({ order, token, onRefresh }: { order: Order; token?: string; onRefresh: () => void }) {
   const [open, setOpen] = useState(false);
+  const { t } = useLanguage();
 
   const updateStatus = async (status: OrderStatus) => {
     if (!token) return;
@@ -70,17 +72,17 @@ function OrderRow({ order, token, onRefresh }: { order: Order; token?: string; o
         <TableCell>
           {order.status === "pending" && (
             <Button size="small" onClick={() => updateStatus("preparing")}>
-              Start
+              {t("orders.start")}
             </Button>
           )}
           {order.status === "preparing" && (
             <Button size="small" color="success" onClick={() => updateStatus("ready")}>
-              Ready
+              {t("orders.ready")}
             </Button>
           )}
           {order.status === "ready" && (
             <Button size="small" color="success" onClick={() => updateStatus("completed")}>
-              Complete
+              {t("orders.complete")}
             </Button>
           )}
         </TableCell>
@@ -90,16 +92,16 @@ function OrderRow({ order, token, onRefresh }: { order: Order; token?: string; o
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ py: 2, px: 2 }}>
               <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                Items
+                {t("orders.items")}
               </Typography>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Product</TableCell>
-                    <TableCell>Variant</TableCell>
-                    <TableCell align="right">Qty</TableCell>
-                    <TableCell align="right">Unit Price</TableCell>
-                    <TableCell align="right">Total</TableCell>
+                    <TableCell>{t("orders.product")}</TableCell>
+                    <TableCell>{t("orders.variant")}</TableCell>
+                    <TableCell align="right">{t("orders.qty")}</TableCell>
+                    <TableCell align="right">{t("orders.unitPrice")}</TableCell>
+                    <TableCell align="right">{t("orders.total")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -118,21 +120,21 @@ function OrderRow({ order, token, onRefresh }: { order: Order; token?: string; o
               </Table>
               <Box className="flex gap-4 mt-2">
                 <Typography variant="caption">
-                  Subtotal: ฿{Number(order.subtotal).toFixed(2)}
+                  {t("orders.subtotal")}: ฿{Number(order.subtotal).toFixed(2)}
                 </Typography>
                 {Number(order.discount_amount) > 0 && (
                   <Typography variant="caption" color="success.main">
-                    Discount: -฿{Number(order.discount_amount).toFixed(2)}
+                    {t("orders.discount")}: -฿{Number(order.discount_amount).toFixed(2)}
                   </Typography>
                 )}
                 <Typography variant="caption">
-                  Tax: ฿{Number(order.tax_amount).toFixed(2)}
+                  {t("orders.tax")}: ฿{Number(order.tax_amount).toFixed(2)}
                 </Typography>
               </Box>
               {order.payments && order.payments.length > 0 && (
                 <Box className="mt-2">
                   <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                    Payments
+                    {t("orders.payments")}
                   </Typography>
                   {order.payments.map((p) => (
                     <Chip
@@ -155,6 +157,7 @@ function OrderRow({ order, token, onRefresh }: { order: Order; token?: string; o
 
 export default function OrdersPage() {
   const { session } = useAuth();
+  const { t } = useLanguage();
   const token = session?.access_token;
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -183,13 +186,13 @@ export default function OrdersPage() {
     fetchOrders();
   }, [token, statusFilter]);
 
-  if (loading) return <LoadingScreen message="Loading orders..." />;
+  if (loading) return <LoadingScreen message={t("orders.loading")} />;
 
   return (
     <Box>
       <Box className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <Typography variant="h5" fontWeight={700}>
-          Orders ({total})
+          {t("orders.title")} ({total})
         </Typography>
         <Box className="flex gap-2">
           <TextField
@@ -199,13 +202,13 @@ export default function OrdersPage() {
             size="small"
             sx={{ minWidth: 140 }}
           >
-            <MenuItem value="all">All Statuses</MenuItem>
-            <MenuItem value="pending">Pending</MenuItem>
-            <MenuItem value="preparing">Preparing</MenuItem>
-            <MenuItem value="ready">Ready</MenuItem>
-            <MenuItem value="completed">Completed</MenuItem>
-            <MenuItem value="cancelled">Cancelled</MenuItem>
-            <MenuItem value="voided">Voided</MenuItem>
+            <MenuItem value="all">{t("orders.allStatuses")}</MenuItem>
+            <MenuItem value="pending">{t("orders.pending")}</MenuItem>
+            <MenuItem value="preparing">{t("orders.preparing")}</MenuItem>
+            <MenuItem value="ready">{t("orders.ready")}</MenuItem>
+            <MenuItem value="completed">{t("orders.completed")}</MenuItem>
+            <MenuItem value="cancelled">{t("orders.cancelled")}</MenuItem>
+            <MenuItem value="voided">{t("orders.voided")}</MenuItem>
           </TextField>
           <IconButton onClick={fetchOrders} title="Refresh">
             <RefreshIcon />
@@ -220,13 +223,13 @@ export default function OrdersPage() {
               <TableHead>
                 <TableRow>
                   <TableCell width={50} />
-                  <TableCell>Order #</TableCell>
-                  <TableCell>Table</TableCell>
-                  <TableCell>Customer</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="right">Total</TableCell>
-                  <TableCell>Created</TableCell>
-                  <TableCell>Actions</TableCell>
+                  <TableCell>{t("orders.orderNo")}</TableCell>
+                  <TableCell>{t("orders.table")}</TableCell>
+                  <TableCell>{t("orders.customer")}</TableCell>
+                  <TableCell>{t("orders.status")}</TableCell>
+                  <TableCell align="right">{t("orders.total")}</TableCell>
+                  <TableCell>{t("orders.created")}</TableCell>
+                  <TableCell>{t("orders.actions")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -236,7 +239,7 @@ export default function OrdersPage() {
                 {orders.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                      <Typography color="text.secondary">No orders found</Typography>
+                      <Typography color="text.secondary">{t("orders.noOrders")}</Typography>
                     </TableCell>
                   </TableRow>
                 )}

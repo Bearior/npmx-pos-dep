@@ -19,10 +19,12 @@ import {
   PointOfSale as PosIcon,
 } from "@mui/icons-material";
 import { useAuth } from "@/providers/AuthProvider";
+import { useLanguage } from "@/providers/LanguageProvider";
 
 export default function LoginPage() {
   const router = useRouter();
   const { signIn } = useAuth();
+  const { t } = useLanguage();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -71,7 +73,7 @@ export default function LoginPage() {
               NPMX POS
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Sign in to your account
+              {t("login.subtitle")}
             </Typography>
           </Box>
 
@@ -83,7 +85,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit}>
             <TextField
-              label="Email"
+              label={t("login.email")}
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -94,7 +96,7 @@ export default function LoginPage() {
             />
 
             <TextField
-              label="Password"
+              label={t("login.password")}
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -124,7 +126,7 @@ export default function LoginPage() {
               disabled={loading || !email || !password}
               sx={{ py: 1.5 }}
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? t("login.signingIn") : t("login.signIn")}
             </Button>
           </form>
         </CardContent>

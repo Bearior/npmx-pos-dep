@@ -22,6 +22,7 @@ import {
   Switch,
   FormControlLabel,
   TableSortLabel,
+  IconButton,
 } from "@mui/material";
 import {
   Warning as WarningIcon,
@@ -32,8 +33,11 @@ import {
   History as HistoryIcon,
   Edit as EditIcon,
   CloudUpload as UploadIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
 } from "@mui/icons-material";
 import { useAuth } from "@/providers/AuthProvider";
+import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
 import Modal from "@/components/ui/Modal";
 import LoadingScreen from "@/components/ui/LoadingScreen";
@@ -55,6 +59,7 @@ const emptyProductForm = {
 
 export default function InventoryPage() {
   const { session } = useAuth();
+  const { t } = useLanguage();
   const token = session?.access_token;
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -283,6 +288,26 @@ export default function InventoryPage() {
     }
   };
 
+  // ---- Toggle visible on POS ----
+  const toggleVisibleOnPos = async (product: Product) => {
+    if (!token) return;
+    const newVal = !(product.visible_on_pos ?? true);
+    try {
+      await api.put(`/inventory/${product.id}`, { visible_on_pos: newVal }, token);
+      setProducts((prev) =>
+        prev.map((p) => (p.id === product.id ? { ...p, visible_on_pos: newVal } : p))
+      );
+      setSnackbar({
+        open: true,
+        message: newVal ? t("inv.showOnPos") : t("inv.hideFromPos"),
+        severity: "success",
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update visibility";
+      setSnackbar({ open: true, message, severity: "error" });
+    }
+  };
+
   // Search & Sort logic
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) {
@@ -321,21 +346,21 @@ export default function InventoryPage() {
     <Box>
       <Box className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <Typography variant="h5" fontWeight={700}>
-          Inventory Management
+          {t("inv.title")}
         </Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setProductFormOpen(true)}
         >
-          Add New Product
+          {t("inv.addProduct")}
         </Button>
       </Box>
 
       {/* Low stock alerts */}
       {lowStockCount > 0 && (
         <Alert severity="warning" icon={<WarningIcon />} className="mb-4">
-          {lowStockCount} product(s) are at or below their low stock threshold.
+          {lowStockCount} {t("inv.lowStockAlert")}
         </Alert>
       )}
 
@@ -343,7 +368,7 @@ export default function InventoryPage() {
       <Card className="mb-3">
         <CardContent sx={{ py: 1.5 }}>
           <TextField
-            placeholder="Search by name, SKU, or category..."
+            placeholder={t("inv.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             fullWidth
@@ -372,18 +397,18 @@ export default function InventoryPage() {
                       direction={sortField === "name" ? sortDir : "asc"}
                       onClick={() => handleSort("name")}
                     >
-                      Product
+                      {t("inv.product")}
                     </TableSortLabel>
                   </TableCell>
-                  <TableCell>SKU</TableCell>
-                  <TableCell>Category</TableCell>
+                  <TableCell>{t("inv.sku")}</TableCell>
+                  <TableCell>{t("inv.category")}</TableCell>
                   <TableCell align="right">
                     <TableSortLabel
                       active={sortField === "price"}
                       direction={sortField === "price" ? sortDir : "asc"}
                       onClick={() => handleSort("price")}
                     >
-                      Price
+                      {t("inv.price")}
                     </TableSortLabel>
                   </TableCell>
                   <TableCell align="right">
@@ -392,7 +417,7 @@ export default function InventoryPage() {
                       direction={sortField === "cost_price" ? sortDir : "asc"}
                       onClick={() => handleSort("cost_price")}
                     >
-                      Cost
+                      {t("inv.cost")}
                     </TableSortLabel>
                   </TableCell>
                   <TableCell align="right">
@@ -401,20 +426,22 @@ export default function InventoryPage() {
                       direction={sortField === "stock_quantity" ? sortDir : "asc"}
                       onClick={() => handleSort("stock_quantity")}
                     >
-                      In Stock
+                      {t("inv.inStock")}
                     </TableSortLabel>
                   </TableCell>
-                  <TableCell align="right">Threshold</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Actions</TableCell>
+                  <TableCell align="right">{t("inv.threshold")}</TableCell>
+                  <TableCell>{t("inv.status")}</TableCell>
+                  <TableCell align="center">{t("inv.visibleOnPos")}</TableCell>
+                  <TableCell>{t("inv.actions")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredProducts.map((product) => {
                   const isLow = product.stock_quantity <= product.low_stock_threshold;
                   const isOut = product.stock_quantity === 0;
+                  const isVisibleOnPos = product.visible_on_pos ?? true;
                   return (
-                    <TableRow key={product.id} hover>
+                    <TableRow key={product.id} hover sx={!isVisibleOnPos ? { opacity: 0.6 } : undefined}>
                       <TableCell>
                         <Typography variant="body2" fontWeight={600}>
                           {product.name}
@@ -434,10 +461,20 @@ export default function InventoryPage() {
                       <TableCell align="right">{product.low_stock_threshold}</TableCell>
                       <TableCell>
                         <Chip
-                          label={isOut ? "Out of Stock" : isLow ? "Low Stock" : "In Stock"}
+                          label={isOut ? t("inv.outOfStock") : isLow ? t("inv.lowStock") : t("inv.inStock")}
                           color={isOut ? "error" : isLow ? "warning" : "success"}
                           size="small"
                         />
+                      </TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          size="small"
+                          onClick={() => toggleVisibleOnPos(product)}
+                          color={isVisibleOnPos ? "primary" : "default"}
+                          title={isVisibleOnPos ? t("inv.hideFromPos") : t("inv.showOnPos")}
+                        >
+                          {isVisibleOnPos ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
+                        </IconButton>
                       </TableCell>
                       <TableCell>
                         <Box className="flex gap-1 flex-wrap">
@@ -449,7 +486,7 @@ export default function InventoryPage() {
                             onClick={() => openAdjustForProduct(product)}
                             sx={{ textTransform: "none", fontWeight: 600, minWidth: 80 }}
                           >
-                            Adjust
+                            {t("inv.adjust")}
                           </Button>
                           <Button
                             size="small"
@@ -459,7 +496,7 @@ export default function InventoryPage() {
                             onClick={() => openEditProduct(product)}
                             sx={{ textTransform: "none", fontWeight: 600, minWidth: 68 }}
                           >
-                            Edit
+                            {t("inv.edit")}
                           </Button>
                           <Button
                             size="small"
@@ -469,7 +506,7 @@ export default function InventoryPage() {
                             onClick={() => openHistory(product.id)}
                             sx={{ textTransform: "none", fontWeight: 600, minWidth: 80, bgcolor: "grey.50" }}
                           >
-                            History
+                            {t("inv.history")}
                           </Button>
                         </Box>
                       </TableCell>
@@ -478,10 +515,10 @@ export default function InventoryPage() {
                 })}
                 {filteredProducts.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
                       <InvIcon sx={{ fontSize: 40, opacity: 0.2, mb: 1 }} />
                       <Typography color="text.secondary">
-                        {search ? "No products match your search" : "No inventory-tracked products"}
+                        {search ? t("inv.noMatch") : t("inv.noProducts")}
                       </Typography>
                     </TableCell>
                   </TableRow>

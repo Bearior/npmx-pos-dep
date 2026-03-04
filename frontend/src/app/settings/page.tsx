@@ -16,10 +16,12 @@ import {
 } from "@mui/material";
 import { Save as SaveIcon, QrCode as QrIcon } from "@mui/icons-material";
 import { useAuth } from "@/providers/AuthProvider";
+import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
 
 export default function SettingsPage() {
   const { profile, session, refreshProfile } = useAuth();
+  const { t } = useLanguage();
   const token = session?.access_token;
 
   const [fullName, setFullName] = useState(profile?.full_name || "");
@@ -35,12 +37,12 @@ export default function SettingsPage() {
   const handleSavePromptPay = () => {
     const cleaned = promptPayId.replace(/[^0-9]/g, "");
     if (cleaned.length !== 10 && cleaned.length !== 13) {
-      setSnackbar({ open: true, message: "PromptPay ID ต้องเป็นเบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก", severity: "error" });
+      setSnackbar({ open: true, message: t("settings.promptPayInvalid"), severity: "error" });
       return;
     }
     localStorage.setItem("promptpay_id", cleaned);
     setPromptPayId(cleaned);
-    setSnackbar({ open: true, message: "บันทึก PromptPay ID เรียบร้อย!", severity: "success" });
+    setSnackbar({ open: true, message: t("settings.promptPaySaved"), severity: "success" });
   };
 
   const handleSave = async () => {
@@ -49,7 +51,7 @@ export default function SettingsPage() {
     try {
       await api.put("/auth/profile", { full_name: fullName, phone }, token);
       await refreshProfile();
-      setSnackbar({ open: true, message: "Profile updated!", severity: "success" });
+      setSnackbar({ open: true, message: t("settings.profileUpdated"), severity: "success" });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Update failed";
       setSnackbar({ open: true, message, severity: "error" });
@@ -61,7 +63,7 @@ export default function SettingsPage() {
   return (
     <Box>
       <Typography variant="h5" fontWeight={700} className="mb-4">
-        Settings
+        {t("settings.title")}
       </Typography>
 
       <Grid container spacing={3}>
@@ -70,7 +72,7 @@ export default function SettingsPage() {
           <Card>
             <CardContent>
               <Typography variant="h6" fontWeight={600} gutterBottom>
-                Profile
+                {t("settings.profile")}
               </Typography>
               <Divider sx={{ mb: 3 }} />
 
@@ -92,7 +94,7 @@ export default function SettingsPage() {
               <Grid container spacing={2}>
                 <Grid item xs={12}>
                   <TextField
-                    label="Full Name"
+                    label={t("settings.fullName")}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     fullWidth
@@ -100,14 +102,14 @@ export default function SettingsPage() {
                 </Grid>
                 <Grid item xs={12}>
                   <TextField
-                    label="Phone"
+                    label={t("settings.phone")}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     fullWidth
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <TextField label="Email" value={profile?.email || ""} fullWidth disabled />
+                  <TextField label={t("settings.email")} value={profile?.email || ""} fullWidth disabled />
                 </Grid>
               </Grid>
 
@@ -118,7 +120,7 @@ export default function SettingsPage() {
                 disabled={saving}
                 sx={{ mt: 3 }}
               >
-                {saving ? "Saving..." : "Save Changes"}
+                {saving ? t("settings.saving") : t("settings.saveChanges")}
               </Button>
             </CardContent>
           </Card>
@@ -131,21 +133,21 @@ export default function SettingsPage() {
               <Box className="flex items-center gap-2 mb-1">
                 <QrIcon color="primary" />
                 <Typography variant="h6" fontWeight={600}>
-                  PromptPay QR Payment
+                  {t("settings.promptPay")}
                 </Typography>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                ใส่เบอร์โทรศัพท์ (10 หลัก) หรือเลขบัตรประชาชน (13 หลัก) เพื่อใช้สร้าง QR Code รับชำระเงิน
+                {t("settings.promptPayDesc")}
               </Typography>
               <Divider sx={{ mb: 3 }} />
 
               <TextField
-                label="PromptPay ID"
+                label={t("settings.promptPayId")}
                 value={promptPayId}
                 onChange={(e) => setPromptPayId(e.target.value)}
                 fullWidth
-                placeholder="0812345678 หรือ 1234567890123"
-                helperText={promptPayId ? `${promptPayId.replace(/[^0-9]/g, "").length} หลัก` : ""}
+                placeholder={t("settings.promptPayPlaceholder")}
+                helperText={promptPayId ? `${promptPayId.replace(/[^0-9]/g, "").length} ${t("settings.digits")}` : ""}
               />
 
               <Button
@@ -155,7 +157,7 @@ export default function SettingsPage() {
                 onClick={handleSavePromptPay}
                 sx={{ mt: 2 }}
               >
-                บันทึก PromptPay
+                {t("settings.savePromptPay")}
               </Button>
             </CardContent>
           </Card>
@@ -166,25 +168,25 @@ export default function SettingsPage() {
           <Card>
             <CardContent>
               <Typography variant="h6" fontWeight={600} gutterBottom>
-                System Information
+                {t("settings.systemInfo")}
               </Typography>
               <Divider sx={{ mb: 3 }} />
 
               <Box className="space-y-2">
                 <Box className="flex justify-between">
-                  <Typography variant="body2" color="text.secondary">Application</Typography>
+                  <Typography variant="body2" color="text.secondary">{t("settings.application")}</Typography>
                   <Typography variant="body2" fontWeight={600}>NPMX POS v1.0.0</Typography>
                 </Box>
                 <Box className="flex justify-between">
-                  <Typography variant="body2" color="text.secondary">Tax Rate</Typography>
+                  <Typography variant="body2" color="text.secondary">{t("settings.taxRate")}</Typography>
                   <Typography variant="body2" fontWeight={600}>7% (VAT)</Typography>
                 </Box>
                 <Box className="flex justify-between">
-                  <Typography variant="body2" color="text.secondary">Currency</Typography>
+                  <Typography variant="body2" color="text.secondary">{t("settings.currency")}</Typography>
                   <Typography variant="body2" fontWeight={600}>THB (฿)</Typography>
                 </Box>
                 <Box className="flex justify-between">
-                  <Typography variant="body2" color="text.secondary">Environment</Typography>
+                  <Typography variant="body2" color="text.secondary">{t("settings.environment")}</Typography>
                   <Typography variant="body2" fontWeight={600}>{process.env.NODE_ENV}</Typography>
                 </Box>
               </Box>

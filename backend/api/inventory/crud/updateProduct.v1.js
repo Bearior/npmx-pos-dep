@@ -19,6 +19,7 @@ module.exports = async (req, res) => {
       "sku",
       "image_url",
       "is_active",
+      "visible_on_pos",
       "track_inventory",
       "low_stock_threshold",
     ];

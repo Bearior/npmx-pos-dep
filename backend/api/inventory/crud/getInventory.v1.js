@@ -9,7 +9,7 @@ module.exports = async (req, res) => {
   try {
     const { data, error } = await supabaseAdmin
       .from("products")
-      .select("id, name, sku, price, cost_price, stock_quantity, is_active, track_inventory, low_stock_threshold, category_id, categories(name)")
+      .select("id, name, sku, price, cost_price, stock_quantity, is_active, track_inventory, low_stock_threshold, category_id, visible_on_pos, image_url, description, categories(name)")
       .eq("is_active", true)
       .order("name");
 

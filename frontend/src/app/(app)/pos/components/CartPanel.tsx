@@ -21,6 +21,7 @@ import {
   DeliveryDining as DeliveryIcon,
 } from "@mui/icons-material";
 import type { CartItem, Discount } from "@/types";
+import { useLanguage } from "@/providers/LanguageProvider";
 
 interface Props {
   cart: CartItem[];
@@ -67,6 +68,7 @@ export default function CartPanel({
   onClearCart,
   onCheckout,
 }: Props) {
+  const { t } = useLanguage();
   return (
     <Card
       className="flex flex-col"
@@ -82,7 +84,7 @@ export default function CartPanel({
           <Box className="flex items-center gap-2">
             <CartIcon color="primary" />
             <Typography variant="h6" fontWeight={700}>
-              Cart
+              {t("cart.title")}
             </Typography>
             {cart.length > 0 && (
               <Chip
@@ -105,14 +107,14 @@ export default function CartPanel({
         <Box className="px-4 py-4">
           <Box className="flex gap-2 items-center mb-1">
             <TextField
-              placeholder="Customer"
+              placeholder={t("cart.customer")}
               value={customerName}
               onChange={(e) => onCustomerNameChange(e.target.value)}
               size="small"
               className="flex-1"
             />
             <TextField
-              placeholder={isGrab ? "Order #" : "Table #"}
+              placeholder={isGrab ? t("cart.orderNo") : t("cart.tableNo")}
               value={tableNumber}
               onChange={(e) => onTableNumberChange(e.target.value)}
               size="small"
@@ -143,10 +145,10 @@ export default function CartPanel({
             <Box className="flex flex-col items-center justify-center h-32 text-center">
               <CartIcon sx={{ fontSize: 48, opacity: 0.15, mb: 1 }} />
               <Typography variant="body2" color="text.secondary">
-                Cart is empty
+                {t("cart.empty")}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Add products to get started
+                {t("cart.addProducts")}
               </Typography>
             </Box>
           ) : (
@@ -218,7 +220,7 @@ export default function CartPanel({
           ) : (
             <Box className="flex gap-2">
               <TextField
-                placeholder="Promo code"
+                placeholder={t("cart.promoCode")}
                 value={discountCode}
                 onChange={(e) => onDiscountCodeChange(e.target.value.toUpperCase())}
                 size="small"
@@ -230,7 +232,7 @@ export default function CartPanel({
                 onClick={onApplyDiscount}
                 disabled={!discountCode}
               >
-                Apply
+                {t("cart.apply")}
               </Button>
             </Box>
           )}
@@ -242,14 +244,14 @@ export default function CartPanel({
         <Box className="px-4 py-3 space-y-1">
           <Box className="flex justify-between">
             <Typography variant="body2" color="text.secondary">
-              Subtotal
+              {t("cart.subtotal")}
             </Typography>
             <Typography variant="body2">฿{subtotal.toFixed(2)}</Typography>
           </Box>
           {discountAmount > 0 && (
             <Box className="flex justify-between">
               <Typography variant="body2" color="success.main">
-                Discount
+                {t("cart.discount")}
               </Typography>
               <Typography variant="body2" color="success.main">
                 -฿{discountAmount.toFixed(2)}
@@ -258,14 +260,14 @@ export default function CartPanel({
           )}
           <Box className="flex justify-between">
             <Typography variant="body2" color="text.secondary">
-              VAT (7%)
+              {t("cart.vat")}
             </Typography>
             <Typography variant="body2">฿{taxAmount.toFixed(2)}</Typography>
           </Box>
           <Divider />
           <Box className="flex justify-between pt-1">
             <Typography variant="h6" fontWeight={700}>
-              Total
+              {t("cart.total")}
             </Typography>
             <Typography variant="h6" fontWeight={700} color="primary">
               ฿{total.toFixed(2)}
@@ -283,7 +285,7 @@ export default function CartPanel({
             onClick={onCheckout}
             sx={{ py: 1.5, fontSize: "1rem" }}
           >
-            Charge ฿{total.toFixed(2)}
+            {t("cart.charge")} ฿{total.toFixed(2)}
           </Button>
         </Box>
       </CardContent>

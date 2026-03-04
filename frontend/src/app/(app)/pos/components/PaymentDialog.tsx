@@ -23,8 +23,10 @@ import { QRCodeSVG } from "qrcode.react";
 import generatePayload from "promptpay-qr";
 import Modal from "@/components/ui/Modal";
 import { useAuth } from "@/providers/AuthProvider";
+import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
 import type { CartItem, PaymentMethod } from "@/types";
+import type { TranslationKey } from "@/libs/i18n/translations";
 
 interface Props {
   open: boolean;
@@ -40,11 +42,11 @@ interface Props {
   onComplete: () => void;
 }
 
-const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: React.ReactNode }[] = [
-  { value: "cash", label: "Cash", icon: <CashIcon /> },
-  { value: "qr", label: "PromptPay", icon: <QrIcon /> },
-  { value: "credit_card", label: "Card", icon: <CardIcon /> },
-  { value: "transfer", label: "Transfer", icon: <TransferIcon /> },
+const PAYMENT_METHODS: { value: PaymentMethod; labelKey: TranslationKey; icon: React.ReactNode }[] = [
+  { value: "cash", labelKey: "payment.cash", icon: <CashIcon /> },
+  { value: "qr", labelKey: "payment.promptPay", icon: <QrIcon /> },
+  { value: "credit_card", labelKey: "payment.card", icon: <CardIcon /> },
+  { value: "transfer", labelKey: "payment.transfer", icon: <TransferIcon /> },
 ];
 
 export default function PaymentDialog({
@@ -61,6 +63,7 @@ export default function PaymentDialog({
   onComplete,
 }: Props) {
   const { session } = useAuth();
+  const { t } = useLanguage();
   const [method, setMethod] = useState<PaymentMethod>("cash");
   const [tendered, setTendered] = useState("");
   const [reference, setReference] = useState("");
@@ -139,23 +142,23 @@ export default function PaymentDialog({
   const quickAmounts = [20, 50, 100, 500, 1000];
 
   return (
-    <Modal open={open} onClose={handleClose} title="Payment" maxWidth="sm">
+    <Modal open={open} onClose={handleClose} title={t("payment.title")} maxWidth="sm">
       {success ? (
         <Box className="flex flex-col items-center py-6">
           <SuccessIcon sx={{ fontSize: 64, color: "success.main", mb: 2 }} />
           <Typography variant="h5" fontWeight={700} gutterBottom>
-            Payment Successful!
+            {t("payment.success")}
           </Typography>
           <Typography variant="h6" color="primary" fontWeight={700}>
             ฿{total.toFixed(2)}
           </Typography>
           {change > 0 && (
             <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-              Change: ฿{change.toFixed(2)}
+              {t("payment.change")}: ฿{change.toFixed(2)}
             </Typography>
           )}
           <Button variant="contained" sx={{ mt: 3 }} onClick={handleClose}>
-            New Order
+            {t("payment.newOrder")}
           </Button>
         </Box>
       ) : (
@@ -163,7 +166,7 @@ export default function PaymentDialog({
           {/* Total */}
           <Box className="text-center mb-4">
             <Typography variant="body2" color="text.secondary">
-              Amount Due
+              {t("payment.amountDue")}
             </Typography>
             <Typography variant="h3" fontWeight={700} color="primary">
               ฿{total.toFixed(2)}
@@ -174,7 +177,7 @@ export default function PaymentDialog({
 
           {/* Payment method */}
           <Typography variant="body2" fontWeight={600} gutterBottom>
-            Payment Method
+            {t("payment.method")}
           </Typography>
           <ToggleButtonGroup
             value={method}
@@ -186,7 +189,7 @@ export default function PaymentDialog({
             {PAYMENT_METHODS.map((pm) => (
               <ToggleButton key={pm.value} value={pm.value} sx={{ py: 1.5, flexDirection: "column", gap: 0.5 }}>
                 {pm.icon}
-                <Typography variant="caption">{pm.label}</Typography>
+                <Typography variant="caption">{t(pm.labelKey)}</Typography>
               </ToggleButton>
             ))}
           </ToggleButtonGroup>
@@ -195,7 +198,7 @@ export default function PaymentDialog({
           {method === "cash" && (
             <Box className="mb-3">
               <TextField
-                label="Amount tendered"
+                label={t("payment.amountTendered")}
                 value={tendered}
                 onChange={(e) => setTendered(e.target.value)}
                 type="number"
@@ -219,12 +222,12 @@ export default function PaymentDialog({
                   color="success"
                   onClick={() => setTendered(String(Math.ceil(total)))}
                 >
-                  Exact
+                  {t("payment.exact")}
                 </Button>
               </Box>
               {tendered && parseFloat(tendered) >= total && (
                 <Typography variant="body2" color="success.main" sx={{ mt: 1 }}>
-                  Change: ฿{(parseFloat(tendered) - total).toFixed(2)}
+                  {t("payment.change")}: ฿{(parseFloat(tendered) - total).toFixed(2)}
                 </Typography>
               )}
             </Box>
@@ -235,11 +238,11 @@ export default function PaymentDialog({
             <Box className="mb-3">
               {!promptPayId ? (
                 <Alert severity="warning" sx={{ mb: 2 }}>
-                  ยังไม่ได้ตั้งค่า PromptPay ID — กรุณาไปตั้งค่าที่หน้า Settings
+                  {t("payment.promptPayNotSet")}
                 </Alert>
               ) : !qrPayload ? (
                 <Alert severity="error" sx={{ mb: 2 }}>
-                  ไม่สามารถสร้าง QR Code ได้ — กรุณาตรวจสอบ PromptPay ID
+                  {t("payment.qrError")}
                 </Alert>
               ) : (
                 <Box className="flex flex-col items-center">
@@ -262,7 +265,7 @@ export default function PaymentDialog({
                     />
                   </Box>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
-                    สแกน QR Code เพื่อชำระเงินผ่าน PromptPay
+                    {t("payment.scanQr")}
                   </Typography>
                   <Typography variant="h5" fontWeight={700} color="primary">
                     ฿{total.toFixed(2)}
@@ -273,7 +276,7 @@ export default function PaymentDialog({
                 </Box>
               )}
               <TextField
-                label="Reference / Slip No. (optional)"
+                label={t("payment.reference")}
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
                 fullWidth
@@ -286,7 +289,7 @@ export default function PaymentDialog({
           {/* Card / Transfer: reference number */}
           {method !== "cash" && method !== "qr" && (
             <TextField
-              label="Reference Number (optional)"
+              label={t("payment.referenceNumber")}
               value={reference}
               onChange={(e) => setReference(e.target.value)}
               fullWidth
@@ -312,7 +315,7 @@ export default function PaymentDialog({
             }
             sx={{ py: 1.5, mt: 1 }}
           >
-            {processing ? "Processing..." : `Pay ฿${total.toFixed(2)}`}
+            {processing ? t("payment.processing") : `${t("payment.pay")} ฿${total.toFixed(2)}`}
           </Button>
         </Box>
       )}

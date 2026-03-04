@@ -64,6 +64,7 @@ import {
   Info as InfoIcon,
 } from "@mui/icons-material";
 import { useAuth } from "@/providers/AuthProvider";
+import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import type {
@@ -93,6 +94,7 @@ const CLASS_LABELS: Record<string, string> = {
 
 export default function ReportsPage() {
   const { session } = useAuth();
+  const { t } = useLanguage();
   const token = session?.access_token;
 
   const [tab, setTab] = useState(0);
@@ -141,7 +143,7 @@ export default function ReportsPage() {
     fetchReports();
   }, [token, dateFrom, dateTo, groupBy]);
 
-  if (loading) return <LoadingScreen message="Loading reports..." />;
+  if (loading) return <LoadingScreen message={t("reports.loading")} />;
 
   const kpis = behaviorData?.kpis;
   const methodology = behaviorData?.methodology;
@@ -149,7 +151,7 @@ export default function ReportsPage() {
   return (
     <Box>
       <Typography variant="h5" fontWeight={700} className="mb-4">
-        Reports & Analytics
+        {t("reports.title")}
       </Typography>
 
       {/* Filters */}
@@ -157,7 +159,7 @@ export default function ReportsPage() {
         <CardContent>
           <Box className="flex flex-wrap items-center gap-3">
             <TextField
-              label="From"
+              label={t("reports.from")}
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
@@ -165,7 +167,7 @@ export default function ReportsPage() {
               size="small"
             />
             <TextField
-              label="To"
+              label={t("reports.to")}
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
@@ -178,9 +180,9 @@ export default function ReportsPage() {
               onChange={(_, v) => v && setGroupBy(v)}
               size="small"
             >
-              <ToggleButton value="day">Daily</ToggleButton>
-              <ToggleButton value="week">Weekly</ToggleButton>
-              <ToggleButton value="month">Monthly</ToggleButton>
+              <ToggleButton value="day">{t("reports.daily")}</ToggleButton>
+              <ToggleButton value="week">{t("reports.weekly")}</ToggleButton>
+              <ToggleButton value="month">{t("reports.monthly")}</ToggleButton>
             </ToggleButtonGroup>
           </Box>
         </CardContent>
@@ -188,11 +190,11 @@ export default function ReportsPage() {
 
       {/* Tabs */}
       <Tabs value={tab} onChange={(_, v) => setTab(v)} className="mb-3" variant="scrollable" scrollButtons="auto">
-        <Tab icon={<TrendIcon />} iconPosition="start" label="Sales Overview" />
-        <Tab icon={<AssessmentIcon />} iconPosition="start" label="Top Products" />
-        <Tab icon={<PeopleIcon />} iconPosition="start" label="Payments" />
-        <Tab icon={<TimerIcon />} iconPosition="start" label="Hourly" />
-        <Tab icon={<BrainIcon />} iconPosition="start" label="Customer Behavior AI" />
+        <Tab icon={<TrendIcon />} iconPosition="start" label={t("reports.salesOverview")} />
+        <Tab icon={<AssessmentIcon />} iconPosition="start" label={t("reports.topProducts")} />
+        <Tab icon={<PeopleIcon />} iconPosition="start" label={t("reports.payments")} />
+        <Tab icon={<TimerIcon />} iconPosition="start" label={t("reports.hourly")} />
+        <Tab icon={<BrainIcon />} iconPosition="start" label={t("reports.customerBehavior")} />
       </Tabs>
 
       {/* ================================================================ */}
@@ -204,17 +206,17 @@ export default function ReportsPage() {
             <Card>
               <CardContent>
                 <Typography variant="h6" fontWeight={600} gutterBottom>
-                  Revenue Trend
+                  {t("reports.revenueTrend")}
                 </Typography>
                 <Box className="flex gap-6 mb-4 flex-wrap">
                   <Box>
-                    <Typography variant="caption" color="text.secondary">Total Revenue</Typography>
+                    <Typography variant="caption" color="text.secondary">{t("reports.totalRevenue")}</Typography>
                     <Typography variant="h6" fontWeight={700} color="primary">
                       ฿{(salesSummary.total_revenue || 0).toLocaleString()}
                     </Typography>
                   </Box>
                   <Box>
-                    <Typography variant="caption" color="text.secondary">Total Orders</Typography>
+                    <Typography variant="caption" color="text.secondary">{t("reports.totalOrders")}</Typography>
                     <Typography variant="h6" fontWeight={700}>{salesSummary.total_orders || 0}</Typography>
                   </Box>
                 </Box>
@@ -240,15 +242,15 @@ export default function ReportsPage() {
         <Card>
           <CardContent>
             <Typography variant="h6" fontWeight={600} gutterBottom>
-              Top Selling Products
+              {t("reports.topSelling")}
             </Typography>
             <Table size="small">
               <TableHead>
                 <TableRow>
                   <TableCell>#</TableCell>
-                  <TableCell>Product</TableCell>
-                  <TableCell align="right">Qty Sold</TableCell>
-                  <TableCell align="right">Revenue</TableCell>
+                  <TableCell>{t("reports.product")}</TableCell>
+                  <TableCell align="right">{t("reports.qtySold")}</TableCell>
+                  <TableCell align="right">{t("reports.revenue")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -273,7 +275,7 @@ export default function ReportsPage() {
         <Card>
           <CardContent>
             <Typography variant="h6" fontWeight={600} gutterBottom>
-              Payment Method Breakdown
+              {t("reports.paymentBreakdown")}
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -307,7 +309,7 @@ export default function ReportsPage() {
         <Card>
           <CardContent>
             <Typography variant="h6" fontWeight={600} gutterBottom>
-              Today&apos;s Hourly Sales
+              {t("reports.hourlySales")}
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={hourlyData.filter((h) => h.order_count > 0 || (h.hour >= 6 && h.hour <= 22))}>
@@ -334,7 +336,7 @@ export default function ReportsPage() {
                 <CardContent className="text-center">
                   <PeopleIcon color="primary" />
                   <Typography variant="h4" fontWeight={700}>{kpis.total_sessions}</Typography>
-                  <Typography variant="caption" color="text.secondary">Total Sessions</Typography>
+                  <Typography variant="caption" color="text.secondary">{t("reports.totalSessions")}</Typography>
                   <Box className="flex justify-center gap-2 mt-1">
                     <Chip icon={<DineIcon />} label={kpis.dine_in_sessions} size="small" variant="outlined" />
                     <Chip icon={<DeliveryIcon />} label={kpis.delivery_sessions} size="small" variant="outlined" color="secondary" />
@@ -350,7 +352,7 @@ export default function ReportsPage() {
                     {kpis.avg_session_duration}
                     <Typography component="span" variant="body2"> min</Typography>
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">Avg Session Duration</Typography>
+                  <Typography variant="caption" color="text.secondary">{t("reports.avgSessionDuration")}</Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -359,7 +361,7 @@ export default function ReportsPage() {
                 <CardContent className="text-center py-8">
                   <SpeedIcon sx={{ color: "#f59e0b" }} />
                   <Typography variant="h4" fontWeight={700}>{kpis.avg_dwell_score}</Typography>
-                  <Typography variant="caption" color="text.secondary">Avg Dwell Score (0-100)</Typography>
+                  <Typography variant="caption" color="text.secondary">{t("reports.avgDwellScore")}</Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -368,7 +370,7 @@ export default function ReportsPage() {
                 <CardContent className="text-center py-8">
                   <TrendIcon sx={{ color: "#8b5cf6" }} />
                   <Typography variant="h4" fontWeight={700}>฿{kpis.avg_basket_value}</Typography>
-                  <Typography variant="caption" color="text.secondary">Avg Basket Value</Typography>
+                  <Typography variant="caption" color="text.secondary">{t("reports.avgBasketValue")}</Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -381,11 +383,11 @@ export default function ReportsPage() {
                 <CardContent>
                   <Typography variant="h6" fontWeight={600} gutterBottom>
                     <BrainIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-                    Customer Classification
+                    {t("reports.customerClassification")}
                   </Typography>
                   {(behaviorData.summary.long_stay + behaviorData.summary.moderate + behaviorData.summary.quick) === 0 ? (
                     <Box sx={{ height: 260, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Typography color="text.secondary" variant="body2">No session data available for this period</Typography>
+                      <Typography color="text.secondary" variant="body2">{t("reports.noSessionData")}</Typography>
                     </Box>
                   ) : (
                     <ResponsiveContainer width="100%" height={260}>
@@ -422,7 +424,7 @@ export default function ReportsPage() {
                   )}
                   <Box className="mt-2 space-y-1">
                     <Box className="flex justify-between items-center">
-                      <Typography variant="body2">Long-Stay %</Typography>
+                      <Typography variant="body2">{t("reports.longStayPct")}</Typography>
                       <Box className="flex items-center gap-2" sx={{ width: "60%" }}>
                         <LinearProgress
                           variant="determinate"
@@ -433,7 +435,7 @@ export default function ReportsPage() {
                       </Box>
                     </Box>
                     <Box className="flex justify-between items-center">
-                      <Typography variant="body2">Quick %</Typography>
+                      <Typography variant="body2">{t("reports.quickPct")}</Typography>
                       <Box className="flex items-center gap-2" sx={{ width: "60%" }}>
                         <LinearProgress
                           variant="determinate"
@@ -500,7 +502,7 @@ export default function ReportsPage() {
           <Card>
             <CardContent>
               <Typography variant="h6" fontWeight={600} gutterBottom>
-                Customer Type by Hour of Day
+                {t("reports.hourlyPattern")}
               </Typography>
               <ResponsiveContainer width="100%" height={280}>
                 <AreaChart data={(behaviorData.hourly_pattern || []).filter((h) => h.hour >= 6 && h.hour <= 23)}>
@@ -521,7 +523,7 @@ export default function ReportsPage() {
           <Card>
             <CardContent>
               <Typography variant="h6" fontWeight={600} gutterBottom>
-                Dwell Score vs Revenue (per session)
+                {t("reports.dwellVsRevenue")}
               </Typography>
               <ResponsiveContainer width="100%" height={300}>
                 <ScatterChart>
@@ -562,22 +564,22 @@ export default function ReportsPage() {
           <Card>
             <CardContent>
               <Typography variant="h6" fontWeight={600} gutterBottom>
-                Session Details (Top 50 by Dwell Score)
+                {t("reports.sessionDetails")}
               </Typography>
               <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 420 }}>
                 <Table size="small" stickyHeader>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Table / Customer</TableCell>
-                      <TableCell>Type</TableCell>
-                      <TableCell align="right">Score</TableCell>
-                      <TableCell align="right">Duration</TableCell>
-                      <TableCell align="right">Orders</TableCell>
-                      <TableCell align="right">Items</TableCell>
-                      <TableCell align="right">Revenue</TableCell>
-                      <TableCell align="right">Avg Basket</TableCell>
-                      <TableCell align="right">Categories</TableCell>
-                      <TableCell>Time</TableCell>
+                      <TableCell>{t("reports.tableCustomer")}</TableCell>
+                      <TableCell>{t("reports.type")}</TableCell>
+                      <TableCell align="right">{t("reports.score")}</TableCell>
+                      <TableCell align="right">{t("reports.duration")}</TableCell>
+                      <TableCell align="right">{t("reports.orders")}</TableCell>
+                      <TableCell align="right">{t("reports.items")}</TableCell>
+                      <TableCell align="right">{t("reports.revenue")}</TableCell>
+                      <TableCell align="right">{t("reports.avgBasket")}</TableCell>
+                      <TableCell align="right">{t("reports.categories")}</TableCell>
+                      <TableCell>{t("reports.time")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -631,10 +633,10 @@ export default function ReportsPage() {
                 <ScienceIcon color="primary" fontSize="large" />
                 <Box>
                   <Typography variant="h6" fontWeight={700}>
-                    Statistical Analysis & Methodology
+                    {t("reports.methodology")}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Data Science documentation for customer behavior classification
+                    {t("reports.methodologyDesc")}
                   </Typography>
                 </Box>
               </Box>
@@ -643,7 +645,7 @@ export default function ReportsPage() {
 
               {/* Session Definition */}
               <Alert severity="info" sx={{ mb: 2 }} icon={<InfoIcon />}>
-                <Typography variant="body2" fontWeight={600}>Session Definition</Typography>
+                <Typography variant="body2" fontWeight={600}>{t("reports.sessionDefinition")}</Typography>
                 <Typography variant="body2">{methodology.session_definition}</Typography>
               </Alert>
 
@@ -652,16 +654,16 @@ export default function ReportsPage() {
                 <AccordionSummary expandIcon={<ExpandIcon />}>
                   <Box className="flex items-center gap-1">
                     <AssessmentIcon color="primary" />
-                    <Typography fontWeight={600}>1. Derived Variables</Typography>
+                    <Typography fontWeight={600}>{t("reports.derivedVariables")}</Typography>
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell><strong>Variable</strong></TableCell>
-                        <TableCell><strong>Formula</strong></TableCell>
-                        <TableCell><strong>Description</strong></TableCell>
+                        <TableCell><strong>{t("reports.variable")}</strong></TableCell>
+                        <TableCell><strong>{t("reports.formula")}</strong></TableCell>
+                        <TableCell><strong>{t("reports.description")}</strong></TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -692,7 +694,7 @@ export default function ReportsPage() {
                 <AccordionSummary expandIcon={<ExpandIcon />}>
                   <Box className="flex items-center gap-1">
                     <BrainIcon color="primary" />
-                    <Typography fontWeight={600}>2. Classification Rules (Threshold Logic)</Typography>
+                    <Typography fontWeight={600}>{t("reports.classificationRules")}</Typography>
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails>
@@ -731,7 +733,7 @@ export default function ReportsPage() {
                 <AccordionSummary expandIcon={<ExpandIcon />}>
                   <Box className="flex items-center gap-1">
                     <InsightIcon color="primary" />
-                    <Typography fontWeight={600}>3. Model Suggestions</Typography>
+                    <Typography fontWeight={600}>{t("reports.modelSuggestions")}</Typography>
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails>
@@ -757,7 +759,7 @@ export default function ReportsPage() {
                 <AccordionSummary expandIcon={<ExpandIcon />}>
                   <Box className="flex items-center gap-1">
                     <CheckIcon color="success" />
-                    <Typography fontWeight={600}>4. Assumptions</Typography>
+                    <Typography fontWeight={600}>{t("reports.assumptions")}</Typography>
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails>
@@ -776,7 +778,7 @@ export default function ReportsPage() {
                 <AccordionSummary expandIcon={<ExpandIcon />}>
                   <Box className="flex items-center gap-1">
                     <WarningIcon color="warning" />
-                    <Typography fontWeight={600}>5. Limitations</Typography>
+                    <Typography fontWeight={600}>{t("reports.limitations")}</Typography>
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails>
@@ -795,7 +797,7 @@ export default function ReportsPage() {
                 <AccordionSummary expandIcon={<ExpandIcon />}>
                   <Box className="flex items-center gap-1">
                     <ScienceIcon color="primary" />
-                    <Typography fontWeight={600}>6. Validation Strategy</Typography>
+                    <Typography fontWeight={600}>{t("reports.validation")}</Typography>
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails>
@@ -814,7 +816,7 @@ export default function ReportsPage() {
                 <AccordionSummary expandIcon={<ExpandIcon />}>
                   <Box className="flex items-center gap-1">
                     <TrendIcon color="primary" />
-                    <Typography fontWeight={600}>7. Suggested KPIs for Monitoring</Typography>
+                    <Typography fontWeight={600}>{t("reports.suggestedKPIs")}</Typography>
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails>

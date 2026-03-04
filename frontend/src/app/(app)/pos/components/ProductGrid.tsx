@@ -3,6 +3,7 @@
 import React from "react";
 import { Card, CardActionArea, CardContent, Typography, Box } from "@mui/material";
 import type { Product } from "@/types";
+import { useLanguage } from "@/providers/LanguageProvider";
 
 interface Props {
   products: Product[];
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function ProductGrid({ products, onProductClick }: Props) {
+  const { t } = useLanguage();
   return (
     <div className="pos-grid">
       {products.map((product) => {
@@ -61,13 +63,13 @@ export default function ProductGrid({ products, onProductClick }: Props) {
                   </Typography>
                   {product.product_variants && product.product_variants.length > 0 && (
                     <Typography variant="caption" color="text.secondary">
-                      +options
+                      {t("pos.options")}
                     </Typography>
                   )}
                 </Box>
                 {product.track_inventory && product.stock_quantity <= product.low_stock_threshold && (
                   <Typography variant="caption" color="error" fontWeight={outOfStock ? 700 : 400}>
-                    {outOfStock ? "Out of stock" : `Low: ${product.stock_quantity} left`}
+                    {outOfStock ? t("pos.outOfStock") : t("pos.lowStock").replace("{0}", String(product.stock_quantity))}
                   </Typography>
                 )}
               </CardContent>
