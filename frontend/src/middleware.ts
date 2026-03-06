@@ -29,11 +29,17 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   const isAuthPage = request.nextUrl.pathname === "/login";
+
+  let user = null;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (!error) {
+      user = data.user;
+    }
+  } catch {
+    // If getUser fails (network error, invalid token, etc.), treat as unauthenticated
+  }
 
   if (!user && !isAuthPage) {
     const redirectUrl = request.nextUrl.clone();
@@ -49,5 +55,15 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/pos/:path*", "/dashboard/:path*", "/inventory/:path*", "/orders/:path*", "/reports/:path*", "/discounts/:path*", "/settings/:path*", "/login"],
+  matcher: [
+    "/",
+    "/pos/:path*",
+    "/dashboard/:path*",
+    "/inventory/:path*",
+    "/orders/:path*",
+    "/reports/:path*",
+    "/discounts/:path*",
+    "/settings/:path*",
+    "/login",
+  ],
 };

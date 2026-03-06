@@ -14,7 +14,7 @@ import VariantSelector from "./components/VariantSelector";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 
 export default function POSPage() {
-  const { session } = useAuth();
+  const { session, loading: authLoading } = useAuth();
   const { t } = useLanguage();
   const token = session?.access_token;
 
@@ -47,7 +47,11 @@ export default function POSPage() {
 
   // Fetch data
   useEffect(() => {
-    if (!token) return;
+    if (authLoading) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     const fetchData = async () => {
       try {
         const [cats, prods] = await Promise.all([
@@ -63,7 +67,7 @@ export default function POSPage() {
       }
     };
     fetchData();
-  }, [token]);
+  }, [token, authLoading]);
 
   // Filtered products — hidden from POS and out of stock sorted to bottom
   const filteredProducts = products
@@ -193,7 +197,7 @@ export default function POSPage() {
     setSnackbar({ open: true, message: t("pos.orderCompleted"), severity: "success" });
   };
 
-  if (loading) return <LoadingScreen message={t("pos.loading")} />;
+  if (authLoading || loading) return <LoadingScreen message={t("pos.loading")} />;
 
   return (
     <Box className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-48px)]">

@@ -59,7 +59,7 @@ const emptyProductForm = {
 };
 
 export default function InventoryPage() {
-  const { session } = useAuth();
+  const { session, loading: authLoading } = useAuth();
   const { t } = useLanguage();
   const token = session?.access_token;
 
@@ -107,7 +107,7 @@ export default function InventoryPage() {
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" });
 
   const fetchData = async () => {
-    if (!token) return;
+    if (!token) { setLoading(false); return; }
     try {
       const [inv, low, cats] = await Promise.all([
         api.get<Product[]>("/inventory", token, { limit: "200" }),
@@ -125,8 +125,9 @@ export default function InventoryPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
     fetchData();
-  }, [token]);
+  }, [token, authLoading]);
 
   // ---- Add New Product ----
   const uploadImage = async (file: File, target: "add" | "edit") => {
@@ -361,7 +362,7 @@ export default function InventoryPage() {
     return list;
   }, [products, search, sortField, sortDir]);
 
-  if (loading) return <LoadingScreen message="Loading inventory..." />;
+  if (authLoading || loading) return <LoadingScreen message="Loading inventory..." />;
 
   return (
     <Box>

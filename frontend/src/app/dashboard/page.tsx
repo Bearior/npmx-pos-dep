@@ -29,7 +29,7 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 import type { DashboardSummary, DashboardAlert, Order } from "@/types";
 
 export default function DashboardPage() {
-  const { session } = useAuth();
+  const { session, loading: authLoading } = useAuth();
   const { t } = useLanguage();
   const token = session?.access_token;
 
@@ -39,7 +39,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!token) return;
+    if (authLoading) return;
+    if (!token) { setLoading(false); return; }
     const fetchDashboard = async () => {
       try {
         const [sum, orders, al] = await Promise.all([
@@ -57,9 +58,9 @@ export default function DashboardPage() {
       }
     };
     fetchDashboard();
-  }, [token]);
+  }, [token, authLoading]);
 
-  if (loading) return <LoadingScreen message={t("dashboard.loading")} />;
+  if (authLoading || loading) return <LoadingScreen message={t("dashboard.loading")} />;
 
   return (
     <Box>

@@ -93,7 +93,7 @@ const CLASS_LABELS: Record<string, string> = {
 };
 
 export default function ReportsPage() {
-  const { session } = useAuth();
+  const { session, loading: authLoading } = useAuth();
   const { t } = useLanguage();
   const token = session?.access_token;
 
@@ -116,7 +116,8 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!token) return;
+    if (authLoading) return;
+    if (!token) { setLoading(false); return; }
     const fetchReports = async () => {
       setLoading(true);
       try {
@@ -141,9 +142,9 @@ export default function ReportsPage() {
       }
     };
     fetchReports();
-  }, [token, dateFrom, dateTo, groupBy]);
+  }, [token, dateFrom, dateTo, groupBy, authLoading]);
 
-  if (loading) return <LoadingScreen message={t("reports.loading")} />;
+  if (authLoading || loading) return <LoadingScreen message={t("reports.loading")} />;
 
   const kpis = behaviorData?.kpis;
   const methodology = behaviorData?.methodology;

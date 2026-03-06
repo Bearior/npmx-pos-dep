@@ -29,7 +29,7 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 import type { Discount } from "@/types";
 
 export default function DiscountsPage() {
-  const { session } = useAuth();
+  const { session, loading: authLoading } = useAuth();
   const { t } = useLanguage();
   const token = session?.access_token;
 
@@ -53,7 +53,7 @@ export default function DiscountsPage() {
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" });
 
   const fetchDiscounts = async () => {
-    if (!token) return;
+    if (!token) { setLoading(false); return; }
     try {
       const data = await api.get<Discount[]>("/discounts", token);
       setDiscounts(data);
@@ -65,8 +65,9 @@ export default function DiscountsPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
     fetchDiscounts();
-  }, [token]);
+  }, [token, authLoading]);
 
   const handleSave = async () => {
     if (!token) return;
@@ -108,7 +109,7 @@ export default function DiscountsPage() {
     }
   };
 
-  if (loading) return <LoadingScreen message={t("discounts.loading")} />;
+  if (authLoading || loading) return <LoadingScreen message={t("discounts.loading")} />;
 
   return (
     <Box>

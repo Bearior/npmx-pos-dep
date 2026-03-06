@@ -156,7 +156,7 @@ function OrderRow({ order, token, onRefresh }: { order: Order; token?: string; o
 }
 
 export default function OrdersPage() {
-  const { session } = useAuth();
+  const { session, loading: authLoading } = useAuth();
   const { t } = useLanguage();
   const token = session?.access_token;
 
@@ -166,7 +166,7 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   const fetchOrders = async () => {
-    if (!token) return;
+    if (!token) { setLoading(false); return; }
     setLoading(true);
     try {
       const params: Record<string, string> = { limit: "50" };
@@ -183,10 +183,11 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
     fetchOrders();
-  }, [token, statusFilter]);
+  }, [token, statusFilter, authLoading]);
 
-  if (loading) return <LoadingScreen message={t("orders.loading")} />;
+  if (authLoading || loading) return <LoadingScreen message={t("orders.loading")} />;
 
   return (
     <Box>
