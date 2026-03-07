@@ -10,12 +10,12 @@ module.exports = async (req, res) => {
     const [categoriesResult, productsResult] = await Promise.all([
       supabaseAdmin
         .from("categories")
-        .select("id, name, name_th, sort_order")
+        .select("id, name, sort_order")
         .eq("is_active", true)
         .order("sort_order"),
       supabaseAdmin
         .from("products")
-        .select("id, name, name_th, description, description_th, price, category_id, image_url, product_variants(id, name, name_th, price_modifier)")
+        .select("id, name, description, price, category_id, image_url, product_variants(id, name, name_th, price_modifier)")
         .eq("is_active", true)
         .eq("visible_on_pos", true)
         .order("name"),
