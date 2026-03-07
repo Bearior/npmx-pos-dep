@@ -144,6 +144,7 @@ const translations = {
   "common.delete": { en: "Delete", th: "ลบ" },
   "common.create": { en: "Create", th: "สร้าง" },
   "common.save": { en: "Save", th: "บันทึก" },
+  "common.close": { en: "Close", th: "ปิด" },
   "common.noData": { en: "No data", th: "ไม่มีข้อมูล" },
 
   // -------- Dashboard --------
@@ -326,6 +327,50 @@ const translations = {
   "payment.promptPayNotSet": { en: "PromptPay ID not configured — please set it in Settings", th: "ยังไม่ได้ตั้งค่า PromptPay ID — กรุณาไปตั้งค่าที่หน้า Settings" },
   "payment.qrError": { en: "Cannot generate QR Code — please check PromptPay ID", th: "ไม่สามารถสร้าง QR Code ได้ — กรุณาตรวจสอบ PromptPay ID" },
   "payment.scanQr": { en: "Scan QR Code to pay via PromptPay", th: "สแกน QR Code เพื่อชำระเงินผ่าน PromptPay" },
+
+  // -------- Tables --------
+  "nav.tables": { en: "Tables", th: "โต๊ะ" },
+  "tables.title": { en: "Table Management", th: "จัดการโต๊ะ" },
+  "tables.addTable": { en: "Add Table", th: "เพิ่มโต๊ะ" },
+  "tables.editTable": { en: "Edit Table", th: "แก้ไขโต๊ะ" },
+  "tables.deleteTable": { en: "Delete Table", th: "ลบโต๊ะ" },
+  "tables.tableNumber": { en: "Table Number", th: "หมายเลขโต๊ะ" },
+  "tables.label": { en: "Label (optional)", th: "ชื่อโต๊ะ (ไม่บังคับ)" },
+  "tables.seats": { en: "Seats", th: "ที่นั่ง" },
+  "tables.active": { en: "Active", th: "เปิดใช้" },
+  "tables.inactive": { en: "Inactive", th: "ปิดใช้" },
+  "tables.qrCode": { en: "QR Code", th: "QR Code" },
+  "tables.downloadQr": { en: "Download QR", th: "ดาวน์โหลด QR" },
+  "tables.viewOrders": { en: "View Orders", th: "ดูออเดอร์" },
+  "tables.noTables": { en: "No tables found", th: "ไม่พบโต๊ะ" },
+  "tables.created": { en: "Table created!", th: "สร้างโต๊ะสำเร็จ!" },
+  "tables.updated": { en: "Table updated!", th: "อัปเดตโต๊ะแล้ว!" },
+  "tables.deleted": { en: "Table deleted!", th: "ลบโต๊ะแล้ว!" },
+  "tables.deleteConfirm": { en: "Are you sure you want to delete this table?", th: "คุณแน่ใจหรือไม่ว่าต้องการลบโต๊ะนี้?" },
+  "tables.orders": { en: "Orders", th: "ออเดอร์" },
+  "tables.totalBill": { en: "Total Bill", th: "ยอดรวม" },
+  "tables.noOrders": { en: "No active orders for this table", th: "ไม่มีออเดอร์สำหรับโต๊ะนี้" },
+  "tables.loading": { en: "Loading tables...", th: "กำลังโหลดโต๊ะ..." },
+
+  // -------- Public Ordering --------
+  "order.title": { en: "Menu", th: "เมนู" },
+  "order.tableLabel": { en: "Table", th: "โต๊ะ" },
+  "order.searchMenu": { en: "Search menu...", th: "ค้นหาเมนู..." },
+  "order.yourOrder": { en: "Your Order", th: "รายการของคุณ" },
+  "order.placeOrder": { en: "Place Order", th: "สั่งอาหาร" },
+  "order.orderPlaced": { en: "Order placed successfully!", th: "สั่งอาหารสำเร็จ!" },
+  "order.orderNumber": { en: "Order Number", th: "หมายเลขออเดอร์" },
+  "order.thankYou": { en: "Thank you! Your order has been received.", th: "ขอบคุณ! รายการสั่งซื้อของคุณถูกรับแล้ว" },
+  "order.orderMore": { en: "Order More", th: "สั่งเพิ่ม" },
+  "order.invalidTable": { en: "Invalid or inactive table", th: "โต๊ะไม่ถูกต้องหรือปิดใช้งาน" },
+  "order.customerName": { en: "Your Name (optional)", th: "ชื่อของคุณ (ไม่บังคับ)" },
+  "order.notes": { en: "Notes (optional)", th: "หมายเหตุ (ไม่บังคับ)" },
+  "order.items": { en: "items", th: "รายการ" },
+  "order.viewOrder": { en: "View Order", th: "ดูรายการ" },
+  "order.all": { en: "All", th: "ทั้งหมด" },
+  "order.empty": { en: "No items yet", th: "ยังไม่มีรายการ" },
+  "order.total": { en: "Total", th: "ยอดรวม" },
+  "order.loading": { en: "Loading menu...", th: "กำลังโหลดเมนู..." },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

@@ -11,6 +11,8 @@ const inventoryRoutes = require("./api/inventory");
 const discountsRoutes = require("./api/discounts");
 const reportsRoutes = require("./api/reports");
 const dashboardRoutes = require("./api/dashboard");
+const tablesRoutes = require("./api/tables");
+const publicRoutes = require("./api/public");
 
 // Mount routes
 router.use("/auth", authRoutes);
@@ -22,5 +24,7 @@ router.use("/inventory", inventoryRoutes);
 router.use("/discounts", discountsRoutes);
 router.use("/reports", reportsRoutes);
 router.use("/dashboard", dashboardRoutes);
+router.use("/tables", tablesRoutes);
+router.use("/public", publicRoutes);
 
 module.exports = router;

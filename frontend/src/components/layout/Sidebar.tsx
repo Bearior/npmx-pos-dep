@@ -31,6 +31,7 @@ import {
   Close as CloseIcon,
   Logout as LogoutIcon,
   Language as LanguageIcon,
+  TableBar as TableBarIcon,
 } from "@mui/icons-material";
 import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
@@ -40,6 +41,7 @@ const NAV_ITEMS: { labelKey: TranslationKey; href: string; icon: React.ReactNode
   { labelKey: "nav.pos", href: "/pos", icon: <PosIcon /> },
   { labelKey: "nav.dashboard", href: "/dashboard", icon: <DashboardIcon />, roles: ["admin", "manager"] },
   { labelKey: "nav.orders", href: "/orders", icon: <OrdersIcon /> },
+  { labelKey: "nav.tables", href: "/tables", icon: <TableBarIcon />, roles: ["admin", "manager"] },
   { labelKey: "nav.inventory", href: "/inventory", icon: <InventoryIcon />, roles: ["admin", "manager"] },
   { labelKey: "nav.reports", href: "/reports", icon: <ReportsIcon />, roles: ["admin", "manager"] },
   { labelKey: "nav.discounts", href: "/discounts", icon: <DiscountIcon />, roles: ["admin", "manager"] },

@@ -178,6 +178,17 @@ export interface DashboardPeriod {
   avg_order_value: number;
 }
 
+// --- Restaurant Table ---
+export interface RestaurantTable {
+  id: string;
+  table_number: string;
+  label?: string;
+  seats: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DashboardSummary {
   today: DashboardPeriod;
   month: DashboardPeriod;
