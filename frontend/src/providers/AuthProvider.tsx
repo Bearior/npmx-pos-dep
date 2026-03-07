@@ -18,7 +18,7 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = ["/login", "/order"];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -30,6 +30,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createBrowserClient();
   const router = useRouter();
   const pathname = usePathname();
+
+  const isPublicPath = useCallback(
+    (p: string) => PUBLIC_PATHS.some((pp) => p === pp || p.startsWith(pp + "/")),
+    []
+  );
 
   const fetchProfile = useCallback(
     async (userId: string) => {
@@ -60,10 +65,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setProfile(null);
         }
-      } catch {
+      } catch (err) {
+        // Handle AbortError / lock-steal errors from expired sessions
         setSession(null);
         setUser(null);
         setProfile(null);
+        if (!isPublicPath(pathname)) {
+          router.replace("/login");
+        }
       } finally {
         setLoading(false);
       }
@@ -96,11 +105,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Client-side redirect: when auth resolves with no session, redirect to login
   useEffect(() => {
     if (loading) return;
-    const isPublicPage = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
-    if (!session && !isPublicPage) {
+    if (!session && !isPublicPath(pathname)) {
       router.replace("/login");
     }
-  }, [loading, session, pathname, router]);
+  }, [loading, session, pathname, router, isPublicPath]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });

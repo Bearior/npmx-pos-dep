@@ -4,14 +4,17 @@ import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   Box, Typography, TextField, InputAdornment, Tabs, Tab, Button,
   Card, CardMedia, CardContent, IconButton, Badge, Fab,
-  Dialog, Slide, AppBar, Toolbar, Snackbar, Alert, Chip,
+  Dialog, DialogTitle, DialogContent, DialogActions, Slide,
+  AppBar, Toolbar, Snackbar, Alert, Chip,
   List, ListItem, ListItemText, Divider, CircularProgress,
-  useMediaQuery, useTheme,
+  useMediaQuery, useTheme, ToggleButton, ToggleButtonGroup,
+  Table, TableHead, TableRow, TableCell, TableBody,
 } from "@mui/material";
 import {
   Search as SearchIcon, ShoppingCart as CartIcon, Close as CloseIcon,
   Add as AddIcon, Remove as RemoveIcon, Delete as DeleteIcon,
   CheckCircle as CheckIcon, Restaurant as RestaurantIcon,
+  History as HistoryIcon,
 } from "@mui/icons-material";
 import type { TransitionProps } from "@mui/material/transitions";
 import { useParams } from "next/navigation";
@@ -50,6 +53,19 @@ interface CartItem {
   variant?: PublicVariant;
   quantity: number;
   unitPrice: number;
+  notes?: string;
+}
+
+interface OrderHistoryItem {
+  id: string;
+  order_number: string;
+  status: string;
+  customer_name?: string;
+  subtotal: number;
+  tax_amount: number;
+  total: number;
+  created_at: string;
+  order_items: { id: string; product_name: string; variant_info?: string; quantity: number; unit_price: number }[];
 }
 
 const SlideUp = React.forwardRef(function SlideUp(
@@ -65,6 +81,7 @@ export default function PublicOrderPage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
+  // Data
   const [tableInfo, setTableInfo] = useState<{ id: string; table_number: string; label?: string; seats: number } | null>(null);
   const [tableError, setTableError] = useState(false);
   const [categories, setCategories] = useState<PublicCategory[]>([]);
@@ -72,14 +89,29 @@ export default function PublicOrderPage() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [search, setSearch] = useState("");
+
+  // Cart
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [customerName, setCustomerName] = useState("");
-  const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<{ order_number: string; total: number } | null>(null);
+
+  // Product detail modal
+  const [selectedProduct, setSelectedProduct] = useState<PublicProduct | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<PublicVariant | null>(null);
+  const [modalQty, setModalQty] = useState(1);
+  const [itemNotes, setItemNotes] = useState("");
+
+  // Order history
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [orderHistory, setOrderHistory] = useState<OrderHistoryItem[]>([]);
+  const [historyTotal, setHistoryTotal] = useState(0);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" });
 
+  // --- Load table + menu ---
   useEffect(() => {
     const load = async () => {
       try {
@@ -109,6 +141,23 @@ export default function PublicOrderPage() {
     load();
   }, [tableNumber]);
 
+  // --- Fetch order history ---
+  const fetchHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/public/table/${encodeURIComponent(tableNumber)}/orders`);
+      if (res.ok) {
+        const data = await res.json();
+        setOrderHistory(data.orders || []);
+        setHistoryTotal(data.grand_total || 0);
+      }
+    } catch {
+      // silent
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [tableNumber]);
+
   const filteredProducts = useMemo(() => {
     let filtered = products;
     if (selectedCategory !== "all") {
@@ -125,25 +174,44 @@ export default function PublicOrderPage() {
     return filtered;
   }, [products, selectedCategory, search]);
 
-  const addToCart = useCallback((product: PublicProduct, variant?: PublicVariant) => {
+  // --- Product detail modal handlers ---
+  const openProductModal = useCallback((product: PublicProduct) => {
+    setSelectedProduct(product);
+    setSelectedVariant(null);
+    setModalQty(1);
+    setItemNotes("");
+  }, []);
+
+  const handleAddToCart = useCallback(() => {
+    if (!selectedProduct) return;
+    const variant = selectedVariant || undefined;
+    const unitPrice = selectedProduct.price + (variant?.price_modifier || 0);
+
     setCart((prev) => {
+      // Check for existing identical item (same product + variant + no notes or same notes)
       const existingIdx = prev.findIndex(
-        (item) => item.product.id === product.id && item.variant?.id === variant?.id
+        (item) => item.product.id === selectedProduct.id
+          && item.variant?.id === variant?.id
+          && (item.notes || "") === itemNotes
       );
-      if (existingIdx >= 0) {
+      if (existingIdx >= 0 && !itemNotes) {
         const updated = [...prev];
-        updated[existingIdx] = { ...updated[existingIdx], quantity: updated[existingIdx].quantity + 1 };
+        updated[existingIdx] = { ...updated[existingIdx], quantity: updated[existingIdx].quantity + modalQty };
         return updated;
       }
       return [...prev, {
-        id: `${product.id}-${variant?.id || "base"}-${Date.now()}`,
-        product,
+        id: `${selectedProduct.id}-${variant?.id || "base"}-${Date.now()}`,
+        product: selectedProduct,
         variant,
-        quantity: 1,
-        unitPrice: product.price + (variant?.price_modifier || 0),
+        quantity: modalQty,
+        unitPrice,
+        notes: itemNotes || undefined,
       }];
     });
-  }, []);
+
+    setSelectedProduct(null);
+    setSnackbar({ open: true, message: "Added to cart!", severity: "success" });
+  }, [selectedProduct, selectedVariant, modalQty, itemNotes]);
 
   const updateQty = useCallback((id: string, delta: number) => {
     setCart((prev) => prev.map((item) =>
@@ -168,12 +236,12 @@ export default function PublicOrderPage() {
         body: JSON.stringify({
           table_number: tableNumber,
           customer_name: customerName || undefined,
-          notes: notes || undefined,
           items: cart.map((item) => ({
             product_id: item.product.id,
             variant_id: item.variant?.id || null,
             variant_info: item.variant?.name || null,
             quantity: item.quantity,
+            notes: item.notes || null,
           })),
         }),
       });
@@ -188,7 +256,6 @@ export default function PublicOrderPage() {
       setCart([]);
       setCartOpen(false);
       setCustomerName("");
-      setNotes("");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Order failed";
       setSnackbar({ open: true, message, severity: "error" });
@@ -238,14 +305,24 @@ export default function PublicOrderPage() {
         <Typography color="text.secondary" textAlign="center">
           Your order has been sent to the kitchen. Please wait for your items to be prepared.
         </Typography>
-        <Button variant="contained" size="large" onClick={() => setOrderSuccess(null)}>
-          Order More
-        </Button>
+        <Box sx={{ display: "flex", gap: 2 }}>
+          <Button variant="contained" size="large" onClick={() => setOrderSuccess(null)}>
+            Order More
+          </Button>
+          <Button
+            variant="outlined"
+            size="large"
+            startIcon={<HistoryIcon />}
+            onClick={() => { setOrderSuccess(null); setHistoryOpen(true); fetchHistory(); }}
+          >
+            View Orders
+          </Button>
+        </Box>
       </Box>
     );
   }
 
-  // --- Main ordering UI ---
+  // --- Cart panel ---
   const cartPanel = (
     <Box sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column" }}>
       <Typography variant="h6" fontWeight={700} mb={2}>
@@ -258,16 +335,6 @@ export default function PublicOrderPage() {
         onChange={(e) => setCustomerName(e.target.value)}
         size="small"
         fullWidth
-        sx={{ mb: 1 }}
-      />
-      <TextField
-        placeholder="Notes (optional)"
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        size="small"
-        fullWidth
-        multiline
-        rows={2}
         sx={{ mb: 2 }}
       />
 
@@ -280,37 +347,39 @@ export default function PublicOrderPage() {
           <List disablePadding>
             {cart.map((item) => (
               <React.Fragment key={item.id}>
-                <ListItem
-                  disablePadding
-                  sx={{ py: 1 }}
-                  secondaryAction={
-                    <IconButton size="small" onClick={() => removeItem(item.id)}>
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  }
-                >
-                  <ListItemText
-                    primary={
-                      <Typography variant="body2" fontWeight={600}>
-                        {item.product.name}
-                        {item.variant && <Chip label={item.variant.name} size="small" sx={{ ml: 1 }} />}
-                      </Typography>
-                    }
-                    secondary={
-                      <Box className="flex items-center gap-1 mt-1">
-                        <IconButton size="small" onClick={() => updateQty(item.id, -1)}>
-                          <RemoveIcon fontSize="small" />
-                        </IconButton>
-                        <Typography variant="body2" fontWeight={600}>{item.quantity}</Typography>
-                        <IconButton size="small" onClick={() => updateQty(item.id, 1)}>
-                          <AddIcon fontSize="small" />
-                        </IconButton>
-                        <Typography variant="body2" sx={{ ml: "auto" }}>
-                          ฿{(item.unitPrice * item.quantity).toFixed(2)}
+                <ListItem disablePadding sx={{ py: 1, pr: 0 }}>
+                  <Box sx={{ width: "100%" }}>
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
+                        <Typography variant="body2" fontWeight={600} noWrap>
+                          {item.product.name}
+                          {item.variant && (
+                            <Chip label={item.variant.name} size="small" sx={{ ml: 0.5, height: 20, fontSize: "0.7rem" }} />
+                          )}
                         </Typography>
+                        {item.notes && (
+                          <Typography variant="caption" color="text.secondary" noWrap display="block">
+                            Note: {item.notes}
+                          </Typography>
+                        )}
                       </Box>
-                    }
-                  />
+                      <IconButton size="small" onClick={() => removeItem(item.id)} sx={{ flexShrink: 0 }}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                    <Box sx={{ display: "flex", alignItems: "center", mt: 0.5 }}>
+                      <IconButton size="small" onClick={() => updateQty(item.id, -1)}>
+                        <RemoveIcon fontSize="small" />
+                      </IconButton>
+                      <Typography variant="body2" fontWeight={600} sx={{ mx: 1 }}>{item.quantity}</Typography>
+                      <IconButton size="small" onClick={() => updateQty(item.id, 1)}>
+                        <AddIcon fontSize="small" />
+                      </IconButton>
+                      <Typography variant="body2" fontWeight={600} sx={{ ml: "auto" }}>
+                        ฿{(item.unitPrice * item.quantity).toFixed(2)}
+                      </Typography>
+                    </Box>
+                  </Box>
                 </ListItem>
                 <Divider />
               </React.Fragment>
@@ -320,7 +389,7 @@ export default function PublicOrderPage() {
       </Box>
 
       <Divider sx={{ my: 2 }} />
-      <Box className="flex justify-between mb-2">
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
         <Typography variant="h6" fontWeight={700}>Total</Typography>
         <Typography variant="h6" fontWeight={700}>฿{cartTotal.toFixed(2)}</Typography>
       </Box>
@@ -337,6 +406,10 @@ export default function PublicOrderPage() {
     </Box>
   );
 
+  const computedModalPrice = selectedProduct
+    ? selectedProduct.price + (selectedVariant?.price_modifier || 0)
+    : 0;
+
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       {/* Header */}
@@ -346,6 +419,12 @@ export default function PublicOrderPage() {
           <Typography variant="h6" fontWeight={700} sx={{ flexGrow: 1 }}>
             Menu
           </Typography>
+          <IconButton
+            onClick={() => { setHistoryOpen(true); fetchHistory(); }}
+            sx={{ mr: 1 }}
+          >
+            <HistoryIcon />
+          </IconButton>
           <Chip
             label={`Table ${tableInfo.table_number}${tableInfo.label ? ` - ${tableInfo.label}` : ""}`}
             color="primary"
@@ -398,6 +477,7 @@ export default function PublicOrderPage() {
               lg: "repeat(4, 1fr)",
             },
             gap: 2,
+            pb: isMobile ? 10 : 0,
           }}>
             {filteredProducts.map((product) => (
               <Card
@@ -407,14 +487,7 @@ export default function PublicOrderPage() {
                   transition: "transform 0.15s",
                   "&:hover": { transform: "scale(1.02)" },
                 }}
-                onClick={() => {
-                  if (product.product_variants && product.product_variants.length > 0) {
-                    // For simplicity, add base product. Could enhance with variant selector modal.
-                    addToCart(product);
-                  } else {
-                    addToCart(product);
-                  }
-                }}
+                onClick={() => openProductModal(product)}
               >
                 {product.image_url && (
                   <CardMedia
@@ -464,7 +537,7 @@ export default function PublicOrderPage() {
       </Box>
 
       {/* Mobile cart FAB */}
-      {isMobile && cart.length > 0 && (
+      {isMobile && (
         <Fab
           color="primary"
           onClick={() => setCartOpen(true)}
@@ -477,12 +550,7 @@ export default function PublicOrderPage() {
       )}
 
       {/* Mobile cart dialog */}
-      <Dialog
-        open={cartOpen}
-        onClose={() => setCartOpen(false)}
-        fullScreen
-        TransitionComponent={SlideUp}
-      >
+      <Dialog open={cartOpen} onClose={() => setCartOpen(false)} fullScreen TransitionComponent={SlideUp}>
         <AppBar position="sticky" color="default" elevation={1}>
           <Toolbar>
             <Typography variant="h6" fontWeight={700} sx={{ flexGrow: 1 }}>
@@ -496,9 +564,230 @@ export default function PublicOrderPage() {
         {cartPanel}
       </Dialog>
 
+      {/* Product detail modal */}
+      <Dialog
+        open={!!selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        {selectedProduct && (
+          <>
+            {selectedProduct.image_url && (
+              <Box
+                component="img"
+                src={selectedProduct.image_url}
+                alt={selectedProduct.name}
+                sx={{ width: "100%", height: 200, objectFit: "cover" }}
+              />
+            )}
+            <DialogTitle sx={{ pb: 0 }}>
+              <Typography variant="h6" fontWeight={700}>{selectedProduct.name}</Typography>
+              {selectedProduct.name_th && (
+                <Typography variant="body2" color="text.secondary">{selectedProduct.name_th}</Typography>
+              )}
+              {selectedProduct.description && (
+                <Typography variant="body2" color="text.secondary" mt={0.5}>{selectedProduct.description}</Typography>
+              )}
+              <Typography variant="h6" fontWeight={700} color="primary.main" mt={1}>
+                ฿{computedModalPrice.toFixed(2)}
+              </Typography>
+            </DialogTitle>
+            <DialogContent>
+              {/* Variant selection */}
+              {selectedProduct.product_variants && selectedProduct.product_variants.length > 0 && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" fontWeight={600} mb={1}>Options</Typography>
+                  <ToggleButtonGroup
+                    value={selectedVariant?.id || ""}
+                    exclusive
+                    onChange={(_, val) => {
+                      if (val === null || val === "") {
+                        setSelectedVariant(null);
+                      } else {
+                        const v = selectedProduct.product_variants!.find((vr) => vr.id === val);
+                        setSelectedVariant(v || null);
+                      }
+                    }}
+                    sx={{ flexWrap: "wrap", gap: 1 }}
+                  >
+                    <ToggleButton value="" sx={{ textTransform: "none" }}>
+                      Base
+                    </ToggleButton>
+                    {selectedProduct.product_variants.map((v) => (
+                      <ToggleButton key={v.id} value={v.id} sx={{ textTransform: "none" }}>
+                        {v.name}
+                        {v.price_modifier !== 0 && (
+                          <Typography variant="caption" sx={{ ml: 0.5 }}>
+                            {v.price_modifier > 0 ? "+" : ""}฿{v.price_modifier.toFixed(0)}
+                          </Typography>
+                        )}
+                      </ToggleButton>
+                    ))}
+                  </ToggleButtonGroup>
+                </Box>
+              )}
+
+              {/* Quantity */}
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" fontWeight={600} mb={1}>Quantity</Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <IconButton
+                    onClick={() => setModalQty((q) => Math.max(1, q - 1))}
+                    disabled={modalQty <= 1}
+                    size="small"
+                    sx={{ border: 1, borderColor: "divider" }}
+                  >
+                    <RemoveIcon />
+                  </IconButton>
+                  <Typography variant="h6" fontWeight={700} sx={{ minWidth: 40, textAlign: "center" }}>
+                    {modalQty}
+                  </Typography>
+                  <IconButton
+                    onClick={() => setModalQty((q) => q + 1)}
+                    size="small"
+                    sx={{ border: 1, borderColor: "divider" }}
+                  >
+                    <AddIcon />
+                  </IconButton>
+                  {/* Quick quantity buttons */}
+                  {[1, 2, 3, 5].map((n) => (
+                    <Chip
+                      key={n}
+                      label={n}
+                      variant={modalQty === n ? "filled" : "outlined"}
+                      color={modalQty === n ? "primary" : "default"}
+                      onClick={() => setModalQty(n)}
+                      sx={{ cursor: "pointer" }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+
+              {/* Notes */}
+              <TextField
+                placeholder="Special instructions (e.g. no ice, extra spicy...)"
+                value={itemNotes}
+                onChange={(e) => setItemNotes(e.target.value)}
+                size="small"
+                fullWidth
+                multiline
+                rows={2}
+              />
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 3 }}>
+              <Button onClick={() => setSelectedProduct(null)} sx={{ mr: 1 }}>Cancel</Button>
+              <Button
+                variant="contained"
+                size="large"
+                fullWidth
+                onClick={handleAddToCart}
+                sx={{ fontWeight: 700 }}
+              >
+                Add to Cart — ฿{(computedModalPrice * modalQty).toFixed(2)}
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      {/* Order history dialog */}
+      <Dialog
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        maxWidth="md"
+        fullWidth
+        fullScreen={isMobile}
+        TransitionComponent={isMobile ? SlideUp : undefined}
+      >
+        <AppBar position="sticky" color="default" elevation={1} sx={{ position: "relative" }}>
+          <Toolbar>
+            <HistoryIcon sx={{ mr: 1 }} />
+            <Typography variant="h6" fontWeight={700} sx={{ flexGrow: 1 }}>
+              Order History — Table {tableNumber}
+            </Typography>
+            <IconButton onClick={() => setHistoryOpen(false)}>
+              <CloseIcon />
+            </IconButton>
+          </Toolbar>
+        </AppBar>
+        <DialogContent>
+          {historyLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : orderHistory.length === 0 ? (
+            <Typography color="text.secondary" textAlign="center" py={4}>
+              No orders yet for this table
+            </Typography>
+          ) : (
+            <>
+              {orderHistory.map((order) => (
+                <Card key={order.id} sx={{ mb: 2 }}>
+                  <CardContent sx={{ pb: "12px !important" }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                      <Box>
+                        <Typography fontFamily="monospace" fontWeight={700}>
+                          {order.order_number}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(order.created_at).toLocaleString()}
+                        </Typography>
+                      </Box>
+                      <Chip
+                        label={order.status}
+                        size="small"
+                        color={
+                          order.status === "completed" ? "success" :
+                          order.status === "pending" ? "warning" :
+                          order.status === "preparing" ? "info" :
+                          order.status === "ready" ? "success" : "default"
+                        }
+                      />
+                    </Box>
+                    <Divider sx={{ my: 1 }} />
+                    {order.order_items.map((item) => (
+                      <Box key={item.id} sx={{ display: "flex", justifyContent: "space-between", py: 0.5 }}>
+                        <Typography variant="body2">
+                          {item.product_name}
+                          {item.variant_info && ` (${item.variant_info})`}
+                          {" "}x{item.quantity}
+                        </Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                          ฿{(item.unit_price * item.quantity).toFixed(2)}
+                        </Typography>
+                      </Box>
+                    ))}
+                    <Divider sx={{ my: 1 }} />
+                    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                      <Typography variant="body2" fontWeight={700}>Order Total</Typography>
+                      <Typography variant="body2" fontWeight={700}>฿{order.total.toFixed(2)}</Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* Grand total */}
+              <Card sx={{ bgcolor: "primary.main", color: "primary.contrastText" }}>
+                <CardContent>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Typography variant="h6" fontWeight={700}>
+                      Total Bill ({orderHistory.length} order{orderHistory.length !== 1 ? "s" : ""})
+                    </Typography>
+                    <Typography variant="h5" fontWeight={800}>
+                      ฿{historyTotal.toFixed(2)}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={4000}
+        autoHideDuration={3000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
         <Alert severity={snackbar.severity} variant="filled">

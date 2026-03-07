@@ -10,7 +10,7 @@ import {
 import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
   QrCode2 as QrCodeIcon, Receipt as ReceiptIcon, Download as DownloadIcon,
-  EventSeat as SeatIcon,
+  EventSeat as SeatIcon, CleaningServices as ClearIcon,
 } from "@mui/icons-material";
 import { QRCodeCanvas } from "qrcode.react";
 import { useAuth } from "@/providers/AuthProvider";
@@ -120,6 +120,19 @@ export default function TablesPage() {
       setOrdersModal({ table: data.table, orders: data.orders });
     } catch {
       // ignore
+    }
+  };
+
+  const handleClearTable = async () => {
+    if (!token || !ordersModal) return;
+    if (!confirm("Clear all active orders for this table? This will mark them as completed.")) return;
+    try {
+      await api.post(`/tables/${ordersModal.table.id}/clear`, {}, token);
+      setSnackbar({ open: true, message: "Table cleared!", severity: "success" });
+      setOrdersModal(null);
+      fetchTables();
+    } catch {
+      setSnackbar({ open: true, message: "Failed to clear table", severity: "error" });
     }
   };
 
@@ -372,6 +385,16 @@ export default function TablesPage() {
         </DialogContent>
         <MuiDialogActions>
           <Button onClick={() => setOrdersModal(null)}>{t("common.close")}</Button>
+          {ordersModal && ordersModal.orders.length > 0 && (
+            <Button
+              variant="contained"
+              color="warning"
+              startIcon={<ClearIcon />}
+              onClick={handleClearTable}
+            >
+              Clear Table
+            </Button>
+          )}
         </MuiDialogActions>
       </Dialog>
 

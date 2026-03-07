@@ -15,9 +15,10 @@ module.exports = async (req, res) => {
         .order("sort_order"),
       supabaseAdmin
         .from("products")
-        .select("id, name, description, price, category_id, image_url, product_variants(id, name, name_th, price_modifier)")
+        .select("id, name, description, price, category_id, image_url, product_variants!left(id, name, name_th, type, price_modifier, sort_order)")
         .eq("is_active", true)
         .eq("visible_on_pos", true)
+        .eq("product_variants.is_active", true)
         .order("name"),
     ]);
 
