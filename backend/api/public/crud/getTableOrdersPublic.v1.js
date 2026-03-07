@@ -26,7 +26,7 @@ module.exports = async (req, res) => {
       .from("orders")
       .select("id, order_number, status, customer_name, subtotal, tax_amount, total, created_at, order_items(id, product_name, variant_info, quantity, unit_price)")
       .eq("table_number", table.table_number)
-      .not("status", "in", '("voided","cancelled")')
+      .not("status", "in", '("voided","cancelled","completed")')
       .order("created_at", { ascending: false });
 
     if (ordersErr) {

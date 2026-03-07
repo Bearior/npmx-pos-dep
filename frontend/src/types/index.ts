@@ -100,6 +100,7 @@ export type OrderStatus =
   | "pending"
   | "preparing"
   | "ready"
+  | "served"
   | "completed"
   | "cancelled"
   | "voided"

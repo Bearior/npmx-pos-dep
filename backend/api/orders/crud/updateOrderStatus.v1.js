@@ -8,7 +8,7 @@ const { supabaseAdmin } = require("../../../config/supabase");
 module.exports = async (req, res) => {
   try {
     const { status } = req.body;
-    const validStatuses = ["pending", "preparing", "ready", "completed", "cancelled"];
+    const validStatuses = ["pending", "preparing", "ready", "served", "completed", "cancelled"];
 
     if (!validStatuses.includes(status)) {
       return res.status(400).json({

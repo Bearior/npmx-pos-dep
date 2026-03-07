@@ -739,6 +739,7 @@ export default function PublicOrderPage() {
                         size="small"
                         color={
                           order.status === "completed" ? "success" :
+                          order.status === "served" ? "primary" :
                           order.status === "pending" ? "warning" :
                           order.status === "preparing" ? "info" :
                           order.status === "ready" ? "success" : "default"

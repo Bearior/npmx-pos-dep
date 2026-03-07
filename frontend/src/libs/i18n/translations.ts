@@ -171,6 +171,7 @@ const translations = {
   "orders.pending": { en: "Pending", th: "รอดำเนินการ" },
   "orders.preparing": { en: "Preparing", th: "กำลังเตรียม" },
   "orders.ready": { en: "Ready", th: "พร้อมเสิร์ฟ" },
+  "orders.served": { en: "Served", th: "เสิร์ฟแล้ว" },
   "orders.completed": { en: "Completed", th: "เสร็จสิ้น" },
   "orders.cancelled": { en: "Cancelled", th: "ยกเลิก" },
   "orders.voided": { en: "Voided", th: "ยกเลิกแล้ว" },

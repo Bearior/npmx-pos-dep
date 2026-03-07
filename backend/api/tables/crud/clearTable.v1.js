@@ -18,22 +18,25 @@ module.exports = async (req, res) => {
       return res.status(404).json({ success: false, message: "Table not found" });
     }
 
-    // Update all pending/preparing/ready orders for this table to "completed"
+    // Mark all active orders (pending/preparing/ready/served) as completed (paid)
     const { data, error } = await supabaseAdmin
       .from("orders")
       .update({ status: "completed", updated_at: new Date().toISOString() })
       .eq("table_number", table.table_number)
-      .in("status", ["pending", "preparing", "ready"])
-      .select("id");
+      .in("status", ["pending", "preparing", "ready", "served"])
+      .select("id, order_number, total");
 
     if (error) {
       return res.status(500).json({ success: false, message: error.message });
     }
 
+    const totalPaid = (data || []).reduce((sum, o) => sum + (o.total || 0), 0);
+
     res.status(200).json({
       success: true,
-      message: `Cleared ${(data || []).length} order(s) for table ${table.table_number}`,
+      message: `Completed ${(data || []).length} order(s) for table ${table.table_number}`,
       cleared_count: (data || []).length,
+      total_paid: totalPaid,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });

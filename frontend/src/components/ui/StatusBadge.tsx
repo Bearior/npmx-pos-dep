@@ -8,6 +8,7 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; color: ChipProps["colo
   pending: { label: "Pending", color: "warning" },
   preparing: { label: "Preparing", color: "info" },
   ready: { label: "Ready", color: "success" },
+  served: { label: "Served", color: "primary" },
   completed: { label: "Completed", color: "success" },
   cancelled: { label: "Cancelled", color: "default" },
   voided: { label: "Voided", color: "error" },

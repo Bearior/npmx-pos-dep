@@ -42,7 +42,14 @@ import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
 import Modal from "@/components/ui/Modal";
 import LoadingScreen from "@/components/ui/LoadingScreen";
-import type { Product, Category, InventoryTransaction } from "@/types";
+import type { Product, Category, InventoryTransaction, ProductVariant } from "@/types";
+
+interface OptionRow {
+  id?: string; // uuid if existing variant, undefined if new
+  name: string;
+  type: string;
+  price_modifier: string;
+}
 
 const emptyProductForm = {
   name: "",
@@ -78,6 +85,7 @@ export default function InventoryPage() {
   const [productForm, setProductForm] = useState(emptyProductForm);
   const [savingProduct, setSavingProduct] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
+  const [addOptions, setAddOptions] = useState<OptionRow[]>([]);
 
   // Edit Product dialog
   const [editOpen, setEditOpen] = useState(false);
@@ -87,6 +95,8 @@ export default function InventoryPage() {
   const [editImageUploading, setEditImageUploading] = useState(false);
   const [deletingProduct, setDeletingProduct] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [editOptions, setEditOptions] = useState<OptionRow[]>([]);
+  const [existingVariantIds, setExistingVariantIds] = useState<string[]>([]);
 
   // Adjust dialog
   const [adjustOpen, setAdjustOpen] = useState(false);
@@ -160,7 +170,7 @@ export default function InventoryPage() {
     if (!token || !productForm.name || !productForm.price) return;
     setSavingProduct(true);
     try {
-      await api.post(
+      const product = await api.post<Product>(
         "/products",
         {
           name: productForm.name,
@@ -177,9 +187,25 @@ export default function InventoryPage() {
         },
         token
       );
+      // Create variants if any
+      if (addOptions.length > 0 && product?.id) {
+        await Promise.all(
+          addOptions
+            .filter((o) => o.name.trim())
+            .map((o, i) =>
+              api.post(`/products/${product.id}/variants`, {
+                name: o.name.trim(),
+                type: o.type || "custom",
+                price_modifier: parseFloat(o.price_modifier) || 0,
+                sort_order: i,
+              }, token)
+            )
+        );
+      }
       setSnackbar({ open: true, message: "Product created successfully!", severity: "success" });
       setProductFormOpen(false);
       setProductForm(emptyProductForm);
+      setAddOptions([]);
       fetchData();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to create product";
@@ -202,7 +228,7 @@ export default function InventoryPage() {
   };
 
   // ---- Edit Product Info ----
-  const openEditProduct = (product: Product) => {
+  const openEditProduct = async (product: Product) => {
     setEditProductId(product.id);
     setEditForm({
       name: product.name,
@@ -218,6 +244,23 @@ export default function InventoryPage() {
       low_stock_threshold: String(product.low_stock_threshold ?? "10"),
     });
     setEditOpen(true);
+    // Load existing variants
+    if (token) {
+      try {
+        const variants = await api.get<ProductVariant[]>(`/products/${product.id}/variants`, token);
+        const rows: OptionRow[] = variants.map((v) => ({
+          id: v.id,
+          name: v.name,
+          type: v.type,
+          price_modifier: String(v.price_modifier),
+        }));
+        setEditOptions(rows);
+        setExistingVariantIds(variants.map((v) => v.id));
+      } catch {
+        setEditOptions([]);
+        setExistingVariantIds([]);
+      }
+    }
   };
 
   const handleEditProduct = async () => {
@@ -240,6 +283,42 @@ export default function InventoryPage() {
         },
         token
       );
+
+      // Handle variant changes
+      const currentIds = editOptions.filter((o) => o.id).map((o) => o.id!);
+      const deletedIds = existingVariantIds.filter((id) => !currentIds.includes(id));
+
+      // Delete removed variants
+      await Promise.all(
+        deletedIds.map((vid) => api.delete(`/products/${editProductId}/variants/${vid}`, token))
+      );
+      // Update existing variants
+      await Promise.all(
+        editOptions
+          .filter((o) => o.id && o.name.trim())
+          .map((o, i) =>
+            api.put(`/products/${editProductId}/variants/${o.id}`, {
+              name: o.name.trim(),
+              type: o.type || "custom",
+              price_modifier: parseFloat(o.price_modifier) || 0,
+              sort_order: i,
+            }, token)
+          )
+      );
+      // Create new variants
+      await Promise.all(
+        editOptions
+          .filter((o) => !o.id && o.name.trim())
+          .map((o, i) =>
+            api.post(`/products/${editProductId}/variants`, {
+              name: o.name.trim(),
+              type: o.type || "custom",
+              price_modifier: parseFloat(o.price_modifier) || 0,
+              sort_order: currentIds.length + i,
+            }, token)
+          )
+      );
+
       setSnackbar({ open: true, message: t("inv.productUpdated"), severity: "success" });
       setEditOpen(false);
       fetchData();
@@ -712,6 +791,77 @@ export default function InventoryPage() {
               label="Active"
             />
           </Grid>
+
+          {/* Product Options / Variants */}
+          <Grid item xs={12}>
+            <Box sx={{ mt: 1, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
+              <Box className="flex items-center justify-between mb-2">
+                <Typography variant="subtitle2" fontWeight={600}>Options (Size, Sweetness, etc.)</Typography>
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={() => setAddOptions([...addOptions, { name: "", type: "custom", price_modifier: "0" }])}
+                  sx={{ textTransform: "none" }}
+                >
+                  Add Option
+                </Button>
+              </Box>
+              {addOptions.map((opt, idx) => (
+                <Box key={idx} className="flex items-center gap-2 mb-2">
+                  <TextField
+                    label="Name"
+                    value={opt.name}
+                    onChange={(e) => {
+                      const next = [...addOptions];
+                      next[idx] = { ...next[idx], name: e.target.value };
+                      setAddOptions(next);
+                    }}
+                    size="small"
+                    sx={{ flex: 2 }}
+                  />
+                  <TextField
+                    select
+                    label="Type"
+                    value={opt.type}
+                    onChange={(e) => {
+                      const next = [...addOptions];
+                      next[idx] = { ...next[idx], type: e.target.value };
+                      setAddOptions(next);
+                    }}
+                    size="small"
+                    sx={{ flex: 1 }}
+                  >
+                    <MenuItem value="size">Size</MenuItem>
+                    <MenuItem value="add_on">Add-on</MenuItem>
+                    <MenuItem value="custom">Custom</MenuItem>
+                  </TextField>
+                  <TextField
+                    label="+/- ฿"
+                    type="number"
+                    value={opt.price_modifier}
+                    onChange={(e) => {
+                      const next = [...addOptions];
+                      next[idx] = { ...next[idx], price_modifier: e.target.value };
+                      setAddOptions(next);
+                    }}
+                    size="small"
+                    sx={{ flex: 1 }}
+                    inputProps={{ step: "0.01" }}
+                  />
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => setAddOptions(addOptions.filter((_, i) => i !== idx))}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))}
+              {addOptions.length === 0 && (
+                <Typography variant="body2" color="text.secondary">No options added yet</Typography>
+              )}
+            </Box>
+          </Grid>
         </Grid>
       </Modal>
 
@@ -944,6 +1094,77 @@ export default function InventoryPage() {
               }
               label="Active"
             />
+          </Grid>
+
+          {/* Product Options / Variants */}
+          <Grid item xs={12}>
+            <Box sx={{ mt: 1, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
+              <Box className="flex items-center justify-between mb-2">
+                <Typography variant="subtitle2" fontWeight={600}>Options (Size, Sweetness, etc.)</Typography>
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={() => setEditOptions([...editOptions, { name: "", type: "custom", price_modifier: "0" }])}
+                  sx={{ textTransform: "none" }}
+                >
+                  Add Option
+                </Button>
+              </Box>
+              {editOptions.map((opt, idx) => (
+                <Box key={opt.id || `new-${idx}`} className="flex items-center gap-2 mb-2">
+                  <TextField
+                    label="Name"
+                    value={opt.name}
+                    onChange={(e) => {
+                      const next = [...editOptions];
+                      next[idx] = { ...next[idx], name: e.target.value };
+                      setEditOptions(next);
+                    }}
+                    size="small"
+                    sx={{ flex: 2 }}
+                  />
+                  <TextField
+                    select
+                    label="Type"
+                    value={opt.type}
+                    onChange={(e) => {
+                      const next = [...editOptions];
+                      next[idx] = { ...next[idx], type: e.target.value };
+                      setEditOptions(next);
+                    }}
+                    size="small"
+                    sx={{ flex: 1 }}
+                  >
+                    <MenuItem value="size">Size</MenuItem>
+                    <MenuItem value="add_on">Add-on</MenuItem>
+                    <MenuItem value="custom">Custom</MenuItem>
+                  </TextField>
+                  <TextField
+                    label="+/- ฿"
+                    type="number"
+                    value={opt.price_modifier}
+                    onChange={(e) => {
+                      const next = [...editOptions];
+                      next[idx] = { ...next[idx], price_modifier: e.target.value };
+                      setEditOptions(next);
+                    }}
+                    size="small"
+                    sx={{ flex: 1 }}
+                    inputProps={{ step: "0.01" }}
+                  />
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => setEditOptions(editOptions.filter((_, i) => i !== idx))}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))}
+              {editOptions.length === 0 && (
+                <Typography variant="body2" color="text.secondary">No options added yet</Typography>
+              )}
+            </Box>
           </Grid>
         </Grid>
       </Modal>

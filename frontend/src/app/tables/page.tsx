@@ -10,7 +10,7 @@ import {
 import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
   QrCode2 as QrCodeIcon, Receipt as ReceiptIcon, Download as DownloadIcon,
-  EventSeat as SeatIcon, CleaningServices as ClearIcon,
+  EventSeat as SeatIcon, Payment as PaymentIcon,
 } from "@mui/icons-material";
 import { QRCodeCanvas } from "qrcode.react";
 import { useAuth } from "@/providers/AuthProvider";
@@ -18,6 +18,7 @@ import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
 import Modal from "@/components/ui/Modal";
 import LoadingScreen from "@/components/ui/LoadingScreen";
+import TablePaymentDialog from "./TablePaymentDialog";
 import type { RestaurantTable, Order } from "@/types";
 
 const PUBLIC_URL = typeof window !== "undefined" ? window.location.origin : "";
@@ -37,6 +38,7 @@ export default function TablesPage() {
 
   const [qrTable, setQrTable] = useState<RestaurantTable | null>(null);
   const [ordersModal, setOrdersModal] = useState<{ table: RestaurantTable; orders: Order[] } | null>(null);
+  const [paymentOpen, setPaymentOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" });
 
   const qrRef = useRef<HTMLCanvasElement>(null);
@@ -123,17 +125,16 @@ export default function TablesPage() {
     }
   };
 
-  const handleClearTable = async () => {
-    if (!token || !ordersModal) return;
-    if (!confirm("Clear all active orders for this table? This will mark them as completed.")) return;
-    try {
-      await api.post(`/tables/${ordersModal.table.id}/clear`, {}, token);
-      setSnackbar({ open: true, message: "Table cleared!", severity: "success" });
-      setOrdersModal(null);
-      fetchTables();
-    } catch {
-      setSnackbar({ open: true, message: "Failed to clear table", severity: "error" });
-    }
+  const handleOpenPayment = () => {
+    if (!ordersModal) return;
+    setPaymentOpen(true);
+  };
+
+  const handlePaymentComplete = (message: string) => {
+    setPaymentOpen(false);
+    setOrdersModal(null);
+    setSnackbar({ open: true, message, severity: "success" });
+    fetchTables();
   };
 
   const downloadQR = () => {
@@ -348,8 +349,10 @@ export default function TablesPage() {
                       <TableCell>
                         <Chip label={order.status} size="small" color={
                           order.status === "completed" ? "success" :
+                          order.status === "served" ? "success" :
                           order.status === "pending" ? "warning" :
-                          order.status === "preparing" ? "info" : "default"
+                          order.status === "preparing" ? "info" :
+                          order.status === "ready" ? "primary" : "default"
                         } />
                       </TableCell>
                       <TableCell>
@@ -388,15 +391,34 @@ export default function TablesPage() {
           {ordersModal && ordersModal.orders.length > 0 && (
             <Button
               variant="contained"
-              color="warning"
-              startIcon={<ClearIcon />}
-              onClick={handleClearTable}
+              color="success"
+              startIcon={<PaymentIcon />}
+              onClick={handleOpenPayment}
             >
-              Clear Table
+              Pay & Complete — ฿
+              {ordersModal.orders
+                .filter((o) => o.status !== "cancelled" && o.status !== "voided")
+                .reduce((sum, o) => sum + o.total, 0)
+                .toFixed(2)}
             </Button>
           )}
         </MuiDialogActions>
       </Dialog>
+
+      {/* Table Payment Dialog */}
+      {ordersModal && token && (
+        <TablePaymentDialog
+          open={paymentOpen}
+          onClose={() => setPaymentOpen(false)}
+          table={ordersModal.table}
+          orders={ordersModal.orders}
+          total={ordersModal.orders
+            .filter((o) => o.status !== "cancelled" && o.status !== "voided")
+            .reduce((sum, o) => sum + o.total, 0)}
+          token={token}
+          onComplete={handlePaymentComplete}
+        />
+      )}
 
       <Snackbar
         open={snackbar.open}

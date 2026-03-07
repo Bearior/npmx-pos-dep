@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
       .from("orders")
       .select("*, order_items(*)")
       .eq("table_number", table.table_number)
-      .not("status", "in", '("voided","cancelled")')
+      .not("status", "in", '("voided","cancelled","completed")')
       .order("created_at", { ascending: false });
 
     if (ordersError) {

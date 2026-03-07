@@ -81,6 +81,11 @@ function OrderRow({ order, token, onRefresh }: { order: Order; token?: string; o
             </Button>
           )}
           {order.status === "ready" && (
+            <Button size="small" color="info" onClick={() => updateStatus("served")}>
+              {t("orders.served")}
+            </Button>
+          )}
+          {order.status === "served" && (
             <Button size="small" color="success" onClick={() => updateStatus("completed")}>
               {t("orders.complete")}
             </Button>
@@ -207,6 +212,7 @@ export default function OrdersPage() {
             <MenuItem value="pending">{t("orders.pending")}</MenuItem>
             <MenuItem value="preparing">{t("orders.preparing")}</MenuItem>
             <MenuItem value="ready">{t("orders.ready")}</MenuItem>
+            <MenuItem value="served">{t("orders.served")}</MenuItem>
             <MenuItem value="completed">{t("orders.completed")}</MenuItem>
             <MenuItem value="cancelled">{t("orders.cancelled")}</MenuItem>
             <MenuItem value="voided">{t("orders.voided")}</MenuItem>
