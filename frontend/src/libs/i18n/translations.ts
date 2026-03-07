@@ -57,6 +57,7 @@ const translations = {
   "cart.apply": { en: "Apply", th: "ใช้" },
   "cart.clearCart": { en: "Clear cart", th: "ล้างตะกร้า" },
   "cart.each": { en: "each", th: "ต่อชิ้น" },
+  "cart.viewCart": { en: "View Cart", th: "ดูตะกร้า" },
 
   // -------- Inventory --------
   "inv.title": { en: "Inventory Management", th: "จัดการคลังสินค้า" },

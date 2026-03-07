@@ -11,41 +11,42 @@ module.exports = async (req, res) => {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-    // Today's orders
-    const { data: todayOrders } = await supabaseAdmin
-      .from("orders")
-      .select("id, total, status")
-      .gte("created_at", todayStart)
-      .neq("status", "voided");
+    // Run all independent queries in parallel (5 → 3 round-trips, run concurrently)
+    const [monthOrdersRes, activeOrdersRes, trackedProductsRes] = await Promise.all([
+      // Single month query covers today (today ⊆ month)
+      supabaseAdmin
+        .from("orders")
+        .select("id, total, status, created_at")
+        .gte("created_at", monthStart)
+        .neq("status", "voided"),
+      // Active orders
+      supabaseAdmin
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["pending", "preparing"]),
+      // Low stock
+      supabaseAdmin
+        .from("products")
+        .select("id, stock_quantity, low_stock_threshold")
+        .eq("is_active", true)
+        .eq("track_inventory", true),
+    ]);
 
-    // Month's orders
-    const { data: monthOrders } = await supabaseAdmin
-      .from("orders")
-      .select("id, total, status")
-      .gte("created_at", monthStart)
-      .neq("status", "voided");
+    const monthOrders = monthOrdersRes.data || [];
+    const todayStartTime = new Date(todayStart).getTime();
 
-    // Active orders (pending / preparing)
-    const { data: activeOrders } = await supabaseAdmin
-      .from("orders")
-      .select("id")
-      .in("status", ["pending", "preparing"]);
+    // Derive today's orders from the month query (subset)
+    const todayOrders = monthOrders.filter(
+      (o) => new Date(o.created_at).getTime() >= todayStartTime
+    );
 
-    // Low stock count — PostgREST can't compare column vs column,
-    // so fetch tracked products and filter in JS
-    const { data: trackedProducts } = await supabaseAdmin
-      .from("products")
-      .select("id, stock_quantity, low_stock_threshold")
-      .eq("is_active", true)
-      .eq("track_inventory", true);
-
-    const lowStockProducts = (trackedProducts || []).filter(
+    const lowStockProducts = (trackedProductsRes.data || []).filter(
       (p) => p.stock_quantity <= p.low_stock_threshold
     );
 
     // Completed order sets
-    const completedToday = (todayOrders || []).filter((o) => o.status === "completed");
-    const completedMonth = (monthOrders || []).filter((o) => o.status === "completed");
+    const completedToday = todayOrders.filter((o) => o.status === "completed");
+    const completedMonth = monthOrders.filter((o) => o.status === "completed");
 
     const todayRevenue = completedToday.reduce((s, o) => s + Number(o.total), 0);
     const monthRevenue = completedMonth.reduce((s, o) => s + Number(o.total), 0);
@@ -64,7 +65,6 @@ module.exports = async (req, res) => {
     const completedTodayIdSet = new Set(completedToday.map((o) => o.id));
 
     if (completedMonthIds.length > 0) {
-      // Fetch order items with product cost_price for all completed month orders
       const { data: items } = await supabaseAdmin
         .from("order_items")
         .select("order_id, quantity, products(cost_price)")
@@ -100,7 +100,7 @@ module.exports = async (req, res) => {
         total_cost: parseFloat(monthCost.toFixed(2)),
         avg_order_value: parseFloat(monthAvg.toFixed(2)),
       },
-      active_orders: (activeOrders || []).length,
+      active_orders: activeOrdersRes.count || 0,
       low_stock_count: (lowStockProducts || []).length,
     });
   } catch (err) {

@@ -1,7 +1,13 @@
 const { supabaseAdmin } = require("../config/supabase");
 
+// Simple in-memory role cache — avoids a DB query on every authenticated request
+// Entries expire after 5 minutes.
+const ROLE_CACHE_TTL = 5 * 60 * 1000;
+const roleCache = new Map();
+
 /**
  * Middleware: Verify Supabase JWT and attach user to req.
+ * Also eagerly fetches the user's role and caches it.
  */
 async function requireAuth(req, res, next) {
   try {
@@ -22,6 +28,24 @@ async function requireAuth(req, res, next) {
 
     req.user = user;
     req.accessToken = token;
+
+    // Check role cache
+    const cached = roleCache.get(user.id);
+    if (cached && Date.now() - cached.ts < ROLE_CACHE_TTL) {
+      req.userRole = cached.role;
+    } else {
+      // Fetch role once and cache it
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      if (profile) {
+        roleCache.set(user.id, { role: profile.role, ts: Date.now() });
+        req.userRole = profile.role;
+      }
+    }
+
     next();
   } catch (err) {
     console.error("Auth middleware error:", err);
@@ -31,6 +55,7 @@ async function requireAuth(req, res, next) {
 
 /**
  * Middleware: Require specific role(s).
+ * Uses the role already fetched and cached by requireAuth.
  */
 function requireRole(...roles) {
   return async (req, res, next) => {
@@ -38,7 +63,15 @@ function requireRole(...roles) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // Fetch profile to check role
+    // Role was already loaded by requireAuth — use it directly
+    if (req.userRole) {
+      if (!roles.includes(req.userRole)) {
+        return res.status(403).json({ error: "Insufficient permissions" });
+      }
+      return next();
+    }
+
+    // Fallback: fetch role if not cached (shouldn't normally happen)
     const { data: profile, error } = await supabaseAdmin
       .from("profiles")
       .select("role")
@@ -53,6 +86,7 @@ function requireRole(...roles) {
       return res.status(403).json({ error: "Insufficient permissions" });
     }
 
+    roleCache.set(req.user.id, { role: profile.role, ts: Date.now() });
     req.userRole = profile.role;
     next();
   };

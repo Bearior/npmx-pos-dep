@@ -87,6 +87,7 @@ export default function CartPanel({
         width: { xs: "100%", lg: 380 },
         minWidth: { lg: 380 },
         maxHeight: { lg: "calc(100vh - 48px)" },
+        boxShadow: { xs: "none", lg: undefined },
       }}
     >
       <CardContent className="flex flex-col flex-1 overflow-hidden p-0">

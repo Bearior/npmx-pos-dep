@@ -12,7 +12,7 @@ module.exports = async (req, res) => {
 
     let query = supabaseAdmin
       .from("orders")
-      .select("*, order_items(*), payments(*)", { count: "exact" })
+      .select("id, order_number, status, total, subtotal, discount_amount, tax_amount, customer_name, table_number, created_at, updated_at", { count: "exact" })
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 

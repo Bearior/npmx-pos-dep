@@ -30,31 +30,37 @@ module.exports = async (req, res) => {
       return res.status(400).json({ success: false, message: "Order must have at least one item" });
     }
 
-    // Resolve product prices and build line items
-    const lineItems = [];
-    for (const item of items) {
-      const { data: product } = await supabaseAdmin
-        .from("products")
-        .select("id, name, price")
-        .eq("id", item.product_id)
-        .single();
+    // Batch-fetch all products and variants in 2 queries instead of N+N
+    const productIds = [...new Set(items.map((i) => i.product_id))];
+    const variantIds = items.map((i) => i.variant_id).filter(Boolean);
 
-      if (!product) {
+    const [productsResult, variantsResult, orderNumber] = await Promise.all([
+      supabaseAdmin.from("products").select("id, name, price").in("id", productIds),
+      variantIds.length > 0
+        ? supabaseAdmin.from("product_variants").select("id, price_modifier").in("id", variantIds)
+        : Promise.resolve({ data: [] }),
+      generateOrderNumber(),
+    ]);
+
+    const productMap = {};
+    (productsResult.data || []).forEach((p) => { productMap[p.id] = p; });
+    const variantMap = {};
+    (variantsResult.data || []).forEach((v) => { variantMap[v.id] = v; });
+
+    // Validate all products exist
+    for (const item of items) {
+      if (!productMap[item.product_id]) {
         return res.status(404).json({ success: false, message: `Product ${item.product_id} not found` });
       }
+    }
 
-      let variantModifier = 0;
-      if (item.variant_id) {
-        const { data: variant } = await supabaseAdmin
-          .from("product_variants")
-          .select("price_modifier")
-          .eq("id", item.variant_id)
-          .single();
-
-        if (variant) variantModifier = variant.price_modifier;
-      }
-
-      lineItems.push({
+    // Build line items from maps
+    const lineItems = items.map((item) => {
+      const product = productMap[item.product_id];
+      const variantModifier = item.variant_id && variantMap[item.variant_id]
+        ? variantMap[item.variant_id].price_modifier
+        : 0;
+      return {
         product_id: product.id,
         product_name: product.name,
         variant_id: item.variant_id || null,
@@ -62,8 +68,8 @@ module.exports = async (req, res) => {
         quantity: item.quantity,
         unit_price: product.price + variantModifier,
         notes: item.notes || null,
-      });
-    }
+      };
+    });
 
     // Apply discount
     let finalDiscount = 0;
@@ -103,8 +109,6 @@ module.exports = async (req, res) => {
     const taxAmount = parseFloat((afterDiscount * TAX_RATE).toFixed(2));
     const total = parseFloat((afterDiscount + taxAmount).toFixed(2));
 
-    const orderNumber = await generateOrderNumber();
-
     // Insert order
     const { data: order, error: orderErr } = await supabaseAdmin
       .from("orders")
@@ -137,13 +141,15 @@ module.exports = async (req, res) => {
       return res.status(500).json({ success: false, message: itemsErr.message });
     }
 
-    // Deduct inventory for tracked products
-    for (const item of items) {
-      await supabaseAdmin.rpc("decrement_stock", {
-        p_product_id: item.product_id,
-        p_quantity: item.quantity,
-      });
-    }
+    // Deduct inventory — batch all stock decrements in parallel
+    await Promise.all(
+      items.map((item) =>
+        supabaseAdmin.rpc("decrement_stock", {
+          p_product_id: item.product_id,
+          p_quantity: item.quantity,
+        })
+      )
+    );
 
     res.status(201).json({ success: true, ...order, items: itemRows });
   } catch (err) {

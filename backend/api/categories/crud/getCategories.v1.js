@@ -16,6 +16,8 @@ module.exports = async (req, res) => {
       return res.status(500).json({ success: false, message: error.message });
     }
 
+    // Categories rarely change — allow clients to cache for 5 minutes
+    res.set("Cache-Control", "private, max-age=300");
     res.status(200).json(data);
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });

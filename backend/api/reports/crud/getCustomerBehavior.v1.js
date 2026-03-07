@@ -53,10 +53,11 @@ module.exports = async (req, res) => {
     const startDate = date_from || new Date(Date.now() - 30 * 86400000).toISOString();
     const endDate = date_to || new Date().toISOString();
 
-    // 1. Fetch all completed orders with items in date range
+    // 1. Fetch completed orders with items in date range
+    //    Only select fields needed for session analysis (not full order payload)
     const { data: orders, error } = await supabaseAdmin
       .from("orders")
-      .select("id, order_number, table_number, customer_name, total, subtotal, created_at, order_items(product_id, quantity, unit_price, product_name)")
+      .select("id, order_number, table_number, customer_name, total, created_at, order_items(product_id, quantity)")
       .gte("created_at", startDate)
       .lte("created_at", endDate)
       .eq("status", "completed")

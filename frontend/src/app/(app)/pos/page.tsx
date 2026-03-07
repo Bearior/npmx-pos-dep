@@ -1,8 +1,25 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { Box, Typography, TextField, InputAdornment, Tabs, Tab, Snackbar, Alert } from "@mui/material";
-import { Search as SearchIcon } from "@mui/icons-material";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import {
+  Box,
+  Typography,
+  TextField,
+  InputAdornment,
+  Tabs,
+  Tab,
+  Snackbar,
+  Alert,
+  Fab,
+  Badge,
+  Dialog,
+  Slide,
+  IconButton,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
+import { Search as SearchIcon, ShoppingCart as CartIcon, Close as CloseIcon } from "@mui/icons-material";
+import type { TransitionProps } from "@mui/material/transitions";
 import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
@@ -13,9 +30,19 @@ import PaymentDialog from "./components/PaymentDialog";
 import VariantSelector from "./components/VariantSelector";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 
+// Slide-up transition for the mobile cart dialog
+const SlideUp = React.forwardRef(function SlideUp(
+  props: TransitionProps & { children: React.ReactElement },
+  ref: React.Ref<unknown>,
+) {
+  return <Slide direction="up" ref={ref} {...props} />;
+});
+
 export default function POSPage() {
   const { session, loading: authLoading } = useAuth();
   const { t } = useLanguage();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
   const token = session?.access_token;
 
   // Data
@@ -37,6 +64,7 @@ export default function POSPage() {
   // Dialogs
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [variantProduct, setVariantProduct] = useState<Product | null>(null);
+  const [mobileCartOpen, setMobileCartOpen] = useState(false);
 
   // Notifications
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: "success" | "error" }>({
@@ -45,10 +73,19 @@ export default function POSPage() {
     severity: "success",
   });
 
-  // Fetch data
+  // Fetch data — cache in module-level ref so navigating away/back is instant
+  const cacheRef = useRef<{ products: Product[]; categories: Category[] } | null>(null);
+
   useEffect(() => {
     if (authLoading) return;
     if (!token) {
+      setLoading(false);
+      return;
+    }
+    // Use cached data immediately, skip API call
+    if (cacheRef.current) {
+      setCategories(cacheRef.current.categories);
+      setProducts(cacheRef.current.products);
       setLoading(false);
       return;
     }
@@ -58,6 +95,7 @@ export default function POSPage() {
           api.get<Category[]>("/categories", token),
           api.get<{ data: Product[] }>("/products", token, { limit: "200" }),
         ]);
+        cacheRef.current = { categories: cats, products: prods.data };
         setCategories(cats);
         setProducts(prods.data);
       } catch (err) {
@@ -69,20 +107,24 @@ export default function POSPage() {
     fetchData();
   }, [token, authLoading]);
 
-  // Filtered products — hidden from POS and out of stock sorted to bottom
-  const filteredProducts = products
-    .filter((p) => {
-      if (!p.is_active) return false;
-      if (p.visible_on_pos === false) return false;
-      if (selectedCategory !== "all" && p.category_id !== selectedCategory) return false;
-      if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      const aOut = a.track_inventory && a.stock_quantity <= 0 ? 1 : 0;
-      const bOut = b.track_inventory && b.stock_quantity <= 0 ? 1 : 0;
-      return aOut - bOut;
-    });
+  // Filtered products — memoised to avoid re-filtering on every render
+  const filteredProducts = useMemo(
+    () =>
+      products
+        .filter((p) => {
+          if (!p.is_active) return false;
+          if (p.visible_on_pos === false) return false;
+          if (selectedCategory !== "all" && p.category_id !== selectedCategory) return false;
+          if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
+          return true;
+        })
+        .sort((a, b) => {
+          const aOut = a.track_inventory && a.stock_quantity <= 0 ? 1 : 0;
+          const bOut = b.track_inventory && b.stock_quantity <= 0 ? 1 : 0;
+          return aOut - bOut;
+        }),
+    [products, selectedCategory, search]
+  );
 
   // Cart operations
   const addToCart = useCallback((product: Product, variants?: ProductVariant[]) => {
@@ -199,6 +241,39 @@ export default function POSPage() {
 
   if (authLoading || loading) return <LoadingScreen message={t("pos.loading")} />;
 
+  const cartItemCount = cart.reduce((s, i) => s + i.quantity, 0);
+
+  const cartPanelProps = {
+    cart,
+    subtotal,
+    discountAmount,
+    taxAmount,
+    total,
+    discountCode,
+    appliedDiscount,
+    customerName,
+    tableNumber,
+    onDiscountCodeChange: setDiscountCode,
+    onApplyDiscount: applyDiscount,
+    onRemoveDiscount: () => { setAppliedDiscount(null); setDiscountCode(""); },
+    onCustomerNameChange: setCustomerName,
+    onTableNumberChange: setTableNumber,
+    isGrab,
+    onGrabChange: (checked: boolean) => {
+      setIsGrab(checked);
+      setTableNumber("");
+    },
+    includeVat,
+    onIncludeVatChange: setIncludeVat,
+    onUpdateQuantity: updateCartQuantity,
+    onRemoveItem: removeFromCart,
+    onClearCart: clearCart,
+    onCheckout: () => {
+      setMobileCartOpen(false);
+      setPaymentOpen(true);
+    },
+  };
+
   return (
     <Box className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-48px)]">
       {/* Left: Product selection */}
@@ -234,7 +309,7 @@ export default function POSPage() {
         </Tabs>
 
         {/* Products grid */}
-        <Box className="flex-1 overflow-auto">
+        <Box className="flex-1 overflow-auto" sx={{ pb: { xs: cart.length > 0 ? 10 : 0, lg: 0 } }}>
           {filteredProducts.length === 0 ? (
             <Box className="flex items-center justify-center h-40">
               <Typography color="text.secondary">{t("pos.noProducts")}</Typography>
@@ -245,34 +320,57 @@ export default function POSPage() {
         </Box>
       </Box>
 
-      {/* Right: Cart */}
-      <CartPanel
-        cart={cart}
-        subtotal={subtotal}
-        discountAmount={discountAmount}
-        taxAmount={taxAmount}
-        total={total}
-        discountCode={discountCode}
-        appliedDiscount={appliedDiscount}
-        customerName={customerName}
-        tableNumber={tableNumber}
-        onDiscountCodeChange={setDiscountCode}
-        onApplyDiscount={applyDiscount}
-        onRemoveDiscount={() => { setAppliedDiscount(null); setDiscountCode(""); }}
-        onCustomerNameChange={setCustomerName}
-        onTableNumberChange={setTableNumber}
-        isGrab={isGrab}
-        onGrabChange={(checked) => {
-          setIsGrab(checked);
-          setTableNumber("");
-        }}
-        includeVat={includeVat}
-        onIncludeVatChange={setIncludeVat}
-        onUpdateQuantity={updateCartQuantity}
-        onRemoveItem={removeFromCart}
-        onClearCart={clearCart}
-        onCheckout={() => setPaymentOpen(true)}
-      />
+      {/* Desktop: inline cart panel */}
+      {!isMobile && <CartPanel {...cartPanelProps} />}
+
+      {/* Mobile: floating cart FAB */}
+      {isMobile && cart.length > 0 && (
+        <Fab
+          color="primary"
+          onClick={() => setMobileCartOpen(true)}
+          sx={{
+            position: "fixed",
+            bottom: 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1200,
+            width: "auto",
+            height: 48,
+            borderRadius: "24px",
+            px: 3,
+            gap: 1,
+          }}
+          variant="extended"
+        >
+          <Badge badgeContent={cartItemCount} color="error">
+            <CartIcon />
+          </Badge>
+          <Typography variant="body2" fontWeight={700} sx={{ ml: 1 }}>
+            {t("cart.viewCart")} &middot; ฿{total.toFixed(2)}
+          </Typography>
+        </Fab>
+      )}
+
+      {/* Mobile: fullscreen cart dialog */}
+      <Dialog
+        open={mobileCartOpen}
+        onClose={() => setMobileCartOpen(false)}
+        fullScreen
+        TransitionComponent={SlideUp}
+        sx={{ display: { lg: "none" } }}
+      >
+        <Box className="flex items-center justify-between px-4 py-2" sx={{ bgcolor: "background.paper" }}>
+          <Typography variant="h6" fontWeight={700}>
+            {t("cart.title")} ({cartItemCount})
+          </Typography>
+          <IconButton onClick={() => setMobileCartOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
+        <Box className="flex-1 overflow-auto">
+          <CartPanel {...cartPanelProps} />
+        </Box>
+      </Dialog>
 
       {/* Variant selector dialog */}
       {variantProduct && (

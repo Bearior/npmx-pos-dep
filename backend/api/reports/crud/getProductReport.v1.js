@@ -17,29 +17,26 @@ module.exports = async (req, res) => {
       start_date || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const endDate = end_date || new Date().toISOString();
 
-    // Get completed orders in date range
-    const { data: orders } = await supabaseAdmin
-      .from("orders")
-      .select("id")
-      .gte("created_at", startDate)
-      .lte("created_at", endDate)
-      .eq("status", "completed");
+    // Single query: join order_items with orders to filter by date+status,
+    // then aggregate in JS. Avoids fetching all order IDs first.
+    const { data: items, error } = await supabaseAdmin
+      .from("order_items")
+      .select("product_id, product_name, quantity, unit_price, orders!inner(status, created_at)")
+      .gte("orders.created_at", startDate)
+      .lte("orders.created_at", endDate)
+      .eq("orders.status", "completed");
 
-    if (!orders || orders.length === 0) {
+    if (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+
+    if (!items || items.length === 0) {
       return res.status(200).json({ data: [] });
     }
 
-    const orderIds = orders.map((o) => o.id);
-
-    // Get order items for those orders
-    const { data: items } = await supabaseAdmin
-      .from("order_items")
-      .select("product_id, product_name, quantity")
-      .in("order_id", orderIds);
-
     // Aggregate by product
     const productMap = {};
-    (items || []).forEach((item) => {
+    items.forEach((item) => {
       if (!productMap[item.product_id]) {
         productMap[item.product_id] = {
           product_id: item.product_id,
@@ -50,7 +47,7 @@ module.exports = async (req, res) => {
         };
       }
       productMap[item.product_id].total_quantity += item.quantity;
-      productMap[item.product_id].total_revenue += item.subtotal;
+      productMap[item.product_id].total_revenue += item.quantity * item.unit_price;
       productMap[item.product_id].order_count++;
     });
 
