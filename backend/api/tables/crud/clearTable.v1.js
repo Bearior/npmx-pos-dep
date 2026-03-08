@@ -32,6 +32,13 @@ module.exports = async (req, res) => {
 
     const totalPaid = (data || []).reduce((sum, o) => sum + (o.total || 0), 0);
 
+    // Rotate session token — invalidates existing QR sessions
+    const newToken = require("crypto").randomBytes(16).toString("hex");
+    await supabaseAdmin
+      .from("restaurant_tables")
+      .update({ session_token: newToken, updated_at: new Date().toISOString() })
+      .eq("id", table.id);
+
     res.status(200).json({
       success: true,
       message: `Completed ${(data || []).length} order(s) for table ${table.table_number}`,

@@ -296,7 +296,7 @@ export default function TablesPage() {
             <>
               <QRCodeCanvas
                 ref={qrRef}
-                value={`${PUBLIC_URL}/order/${qrTable.table_number}`}
+                value={`${PUBLIC_URL}/order/${qrTable.table_number}?s=${qrTable.session_token || ""}`}
                 size={256}
                 level="H"
                 includeMargin

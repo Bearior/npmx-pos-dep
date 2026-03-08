@@ -185,6 +185,7 @@ export interface RestaurantTable {
   table_number: string;
   label?: string;
   seats: number;
+  session_token?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;

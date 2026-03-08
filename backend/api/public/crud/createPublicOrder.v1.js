@@ -20,7 +20,7 @@ async function generateOrderNumber() {
  */
 module.exports = async (req, res) => {
   try {
-    const { items, table_number, customer_name, notes } = req.body;
+    const { items, table_number, customer_name, notes, session_token } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ success: false, message: "Order must have at least one item" });
@@ -30,16 +30,25 @@ module.exports = async (req, res) => {
       return res.status(400).json({ success: false, message: "Table number is required" });
     }
 
-    // Validate table exists and is active
+    // Validate table exists, is active, and session_token matches
     const { data: table, error: tableErr } = await supabaseAdmin
       .from("restaurant_tables")
-      .select("id, table_number")
+      .select("id, table_number, session_token")
       .eq("table_number", table_number)
       .eq("is_active", true)
       .single();
 
     if (tableErr || !table) {
       return res.status(404).json({ success: false, message: "Table not found or inactive" });
+    }
+
+    // Validate session token — prevents ordering after bill is paid
+    if (!session_token || session_token !== table.session_token) {
+      return res.status(403).json({
+        success: false,
+        message: "Session expired. Please scan the QR code again.",
+        code: "SESSION_EXPIRED",
+      });
     }
 
     // Batch-fetch products and variants

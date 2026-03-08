@@ -11,7 +11,7 @@ module.exports = async (req, res) => {
 
     const { data, error } = await supabaseAdmin
       .from("restaurant_tables")
-      .select("id, table_number, label, seats")
+      .select("id, table_number, label, seats, session_token")
       .eq("table_number", tableNumber)
       .eq("is_active", true)
       .single();

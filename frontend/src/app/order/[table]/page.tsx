@@ -17,7 +17,7 @@ import {
   History as HistoryIcon,
 } from "@mui/icons-material";
 import type { TransitionProps } from "@mui/material/transitions";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
@@ -77,13 +77,16 @@ const SlideUp = React.forwardRef(function SlideUp(
 
 export default function PublicOrderPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const tableNumber = params.table as string;
+  const sessionToken = searchParams.get("s") || "";
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   // Data
-  const [tableInfo, setTableInfo] = useState<{ id: string; table_number: string; label?: string; seats: number } | null>(null);
+  const [tableInfo, setTableInfo] = useState<{ id: string; table_number: string; label?: string; seats: number; session_token?: string } | null>(null);
   const [tableError, setTableError] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [categories, setCategories] = useState<PublicCategory[]>([]);
   const [products, setProducts] = useState<PublicProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,6 +131,13 @@ export default function PublicOrderPage() {
 
         const tableData = await tableRes.json();
         const menuData = await menuRes.json();
+
+        // Validate session token
+        if (sessionToken && tableData.session_token && sessionToken !== tableData.session_token) {
+          setSessionExpired(true);
+          setLoading(false);
+          return;
+        }
 
         setTableInfo(tableData);
         setCategories(menuData.categories || []);
@@ -235,6 +245,7 @@ export default function PublicOrderPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           table_number: tableNumber,
+          session_token: sessionToken,
           customer_name: customerName || undefined,
           items: cart.map((item) => ({
             product_id: item.product.id,
@@ -248,6 +259,10 @@ export default function PublicOrderPage() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
+        if (err.code === "SESSION_EXPIRED") {
+          setSessionExpired(true);
+          return;
+        }
         throw new Error(err.message || "Order failed");
       }
 
@@ -283,6 +298,20 @@ export default function PublicOrderPage() {
         </Typography>
         <Typography color="text.secondary">
           Please scan a valid QR code at your table.
+        </Typography>
+      </Box>
+    );
+  }
+
+  // --- Session expired ---
+  if (sessionExpired) {
+    return (
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", flexDirection: "column", gap: 2, p: 3 }}>
+        <Typography variant="h5" fontWeight={700} color="error">
+          Session Expired
+        </Typography>
+        <Typography color="text.secondary" textAlign="center">
+          This ordering session has ended. Please scan the QR code at your table again to place a new order.
         </Typography>
       </Box>
     );
