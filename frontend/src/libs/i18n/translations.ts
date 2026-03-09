@@ -299,6 +299,15 @@ const translations = {
   "settings.taxRate": { en: "Tax Rate", th: "อัตราภาษี" },
   "settings.currency": { en: "Currency", th: "สกุลเงิน" },
   "settings.environment": { en: "Environment", th: "สภาพแวดล้อม" },
+  "settings.dbStatus": { en: "Database & Storage Status", th: "สถานะฐานข้อมูลและพื้นที่จัดเก็บ" },
+  "settings.dbStatusDesc": { en: "Current Supabase database and file storage usage based on your plan tier", th: "การใช้งานฐานข้อมูลและพื้นที่จัดเก็บไฟล์ของ Supabase ตามแผนที่ใช้งาน" },
+  "settings.databaseSize": { en: "Database Size", th: "ขนาดฐานข้อมูล" },
+  "settings.fileStorage": { en: "File Storage", th: "พื้นที่จัดเก็บไฟล์" },
+  "settings.tier": { en: "Tier", th: "แผน" },
+  "settings.used": { en: "used", th: "ใช้งานแล้ว" },
+  "settings.refresh": { en: "Refresh", th: "รีเฟรช" },
+  "settings.dbStatusError": { en: "Failed to load database status", th: "ไม่สามารถโหลดสถานะฐานข้อมูลได้" },
+  "settings.dbStatusUnavailable": { en: "Database status is unavailable", th: "ไม่สามารถดึงข้อมูลสถานะฐานข้อมูลได้" },
 
   // -------- Login --------
   "login.title": { en: "NPMX POS", th: "NPMX POS" },

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -13,8 +13,16 @@ import {
   Avatar,
   Snackbar,
   Alert,
+  LinearProgress,
+  Chip,
+  CircularProgress,
 } from "@mui/material";
-import { Save as SaveIcon, QrCode as QrIcon } from "@mui/icons-material";
+import {
+  Save as SaveIcon,
+  QrCode as QrIcon,
+  Storage as StorageIcon,
+  Refresh as RefreshIcon,
+} from "@mui/icons-material";
 import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
@@ -28,6 +36,32 @@ export default function SettingsPage() {
   const [phone, setPhone] = useState(profile?.phone || "");
   const [saving, setSaving] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" });
+
+  // Supabase status
+  interface SupabaseStatus {
+    tier: string;
+    database: { used_mb: number; max_mb: number; percentage: number };
+    storage: { used_mb: number; max_gb: number; max_mb: number; percentage: number };
+  }
+  const [supabaseStatus, setSupabaseStatus] = useState<SupabaseStatus | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+
+  const fetchSupabaseStatus = useCallback(async () => {
+    if (!token) return;
+    setStatusLoading(true);
+    try {
+      const data = await api.get<SupabaseStatus>("/dashboard/supabase-status", token);
+      setSupabaseStatus(data);
+    } catch {
+      setSnackbar({ open: true, message: t("settings.dbStatusError"), severity: "error" });
+    } finally {
+      setStatusLoading(false);
+    }
+  }, [token, t]);
+
+  useEffect(() => {
+    fetchSupabaseStatus();
+  }, [fetchSupabaseStatus]);
 
   // PromptPay config (localStorage)
   const [promptPayId, setPromptPayId] = useState(() =>
@@ -159,6 +193,127 @@ export default function SettingsPage() {
               >
                 {t("settings.savePromptPay")}
               </Button>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Supabase Database Status */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Box className="flex items-center justify-between mb-1">
+                <Box className="flex items-center gap-2">
+                  <StorageIcon color="primary" />
+                  <Typography variant="h6" fontWeight={600}>
+                    {t("settings.dbStatus")}
+                  </Typography>
+                  {supabaseStatus && (
+                    <Chip
+                      label={`${supabaseStatus.tier} ${t("settings.tier")}`}
+                      color="primary"
+                      size="small"
+                      variant="outlined"
+                    />
+                  )}
+                </Box>
+                <Button
+                  size="small"
+                  startIcon={<RefreshIcon />}
+                  onClick={fetchSupabaseStatus}
+                  disabled={statusLoading}
+                >
+                  {t("settings.refresh")}
+                </Button>
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                {t("settings.dbStatusDesc")}
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+
+              {statusLoading && !supabaseStatus ? (
+                <Box className="flex justify-center py-4">
+                  <CircularProgress size={32} />
+                </Box>
+              ) : supabaseStatus ? (
+                <Grid container spacing={3}>
+                  {/* Database Size */}
+                  <Grid item xs={12} md={6}>
+                    <Box>
+                      <Box className="flex justify-between mb-1">
+                        <Typography variant="body2" fontWeight={600}>
+                          {t("settings.databaseSize")}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {supabaseStatus.database.used_mb} MB / {supabaseStatus.database.max_mb} MB
+                        </Typography>
+                      </Box>
+                      <LinearProgress
+                        variant="determinate"
+                        value={Math.min(supabaseStatus.database.percentage, 100)}
+                        sx={{
+                          height: 10,
+                          borderRadius: 5,
+                          bgcolor: "grey.200",
+                          "& .MuiLinearProgress-bar": {
+                            borderRadius: 5,
+                            bgcolor:
+                              supabaseStatus.database.percentage > 90
+                                ? "error.main"
+                                : supabaseStatus.database.percentage > 70
+                                ? "warning.main"
+                                : "success.main",
+                          },
+                        }}
+                      />
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+                        {supabaseStatus.database.percentage}% {t("settings.used")}
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  {/* File Storage */}
+                  <Grid item xs={12} md={6}>
+                    <Box>
+                      <Box className="flex justify-between mb-1">
+                        <Typography variant="body2" fontWeight={600}>
+                          {t("settings.fileStorage")}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {supabaseStatus.storage.used_mb < 1024
+                            ? `${supabaseStatus.storage.used_mb} MB`
+                            : `${(supabaseStatus.storage.used_mb / 1024).toFixed(2)} GB`}{" "}
+                          / {supabaseStatus.storage.max_gb} GB
+                        </Typography>
+                      </Box>
+                      <LinearProgress
+                        variant="determinate"
+                        value={Math.min(supabaseStatus.storage.percentage, 100)}
+                        sx={{
+                          height: 10,
+                          borderRadius: 5,
+                          bgcolor: "grey.200",
+                          "& .MuiLinearProgress-bar": {
+                            borderRadius: 5,
+                            bgcolor:
+                              supabaseStatus.storage.percentage > 90
+                                ? "error.main"
+                                : supabaseStatus.storage.percentage > 70
+                                ? "warning.main"
+                                : "success.main",
+                          },
+                        }}
+                      />
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+                        {supabaseStatus.storage.percentage}% {t("settings.used")}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  {t("settings.dbStatusUnavailable")}
+                </Typography>
+              )}
             </CardContent>
           </Card>
         </Grid>
