@@ -25,7 +25,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
 import Modal from "@/components/ui/Modal";
-import LoadingScreen from "@/components/ui/LoadingScreen";
+import { DiscountsSkeleton } from "@/components/ui/Skeletons";
 import type { Discount } from "@/types";
 
 export default function DiscountsPage() {
@@ -109,7 +109,7 @@ export default function DiscountsPage() {
     }
   };
 
-  if (authLoading || loading) return <LoadingScreen message={t("discounts.loading")} />;
+  if (authLoading || loading) return <DiscountsSkeleton />;
 
   return (
     <Box>

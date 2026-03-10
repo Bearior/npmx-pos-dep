@@ -28,7 +28,7 @@ import ProductGrid from "./components/ProductGrid";
 import CartPanel from "./components/CartPanel";
 import PaymentDialog from "./components/PaymentDialog";
 import VariantSelector from "./components/VariantSelector";
-import LoadingScreen from "@/components/ui/LoadingScreen";
+import { POSSkeleton } from "@/components/ui/Skeletons";
 
 // Slide-up transition for the mobile cart dialog
 const SlideUp = React.forwardRef(function SlideUp(
@@ -239,7 +239,7 @@ export default function POSPage() {
     setSnackbar({ open: true, message: t("pos.orderCompleted"), severity: "success" });
   };
 
-  if (authLoading || loading) return <LoadingScreen message={t("pos.loading")} />;
+  if (authLoading || loading) return <POSSkeleton />;
 
   const cartItemCount = cart.reduce((s, i) => s + i.quantity, 0);
 

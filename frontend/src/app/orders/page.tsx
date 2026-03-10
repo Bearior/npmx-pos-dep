@@ -29,7 +29,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
 import StatusBadge from "@/components/ui/StatusBadge";
-import LoadingScreen from "@/components/ui/LoadingScreen";
+import { OrdersSkeleton } from "@/components/ui/Skeletons";
 import ReceiptDialog from "@/components/ui/ReceiptDialog";
 import type { ReceiptData } from "@/components/ui/ReceiptDialog";
 import type { Order, OrderStatus } from "@/types";
@@ -221,7 +221,7 @@ export default function OrdersPage() {
     fetchOrders();
   }, [token, statusFilter, authLoading]);
 
-  if (authLoading || loading) return <LoadingScreen message={t("orders.loading")} />;
+  if (authLoading || loading) return <OrdersSkeleton />;
 
   return (
     <Box>

@@ -25,7 +25,7 @@ import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
 import StatCard from "@/components/ui/StatCard";
 import StatusBadge from "@/components/ui/StatusBadge";
-import LoadingScreen from "@/components/ui/LoadingScreen";
+import { DashboardSkeleton } from "@/components/ui/Skeletons";
 import type { DashboardSummary, DashboardAlert, Order } from "@/types";
 
 export default function DashboardPage() {
@@ -60,7 +60,7 @@ export default function DashboardPage() {
     fetchDashboard();
   }, [token, authLoading]);
 
-  if (authLoading || loading) return <LoadingScreen message={t("dashboard.loading")} />;
+  if (authLoading || loading) return <DashboardSkeleton />;
 
   return (
     <Box>

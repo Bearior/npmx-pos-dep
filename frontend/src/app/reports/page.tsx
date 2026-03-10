@@ -66,7 +66,7 @@ import {
 import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
-import LoadingScreen from "@/components/ui/LoadingScreen";
+import { ReportsSkeleton } from "@/components/ui/Skeletons";
 import type {
   SalesReportRow,
   SalesReportResponse,
@@ -144,7 +144,7 @@ export default function ReportsPage() {
     fetchReports();
   }, [token, dateFrom, dateTo, groupBy, authLoading]);
 
-  if (authLoading || loading) return <LoadingScreen message={t("reports.loading")} />;
+  if (authLoading || loading) return <ReportsSkeleton />;
 
   const kpis = behaviorData?.kpis;
   const methodology = behaviorData?.methodology;

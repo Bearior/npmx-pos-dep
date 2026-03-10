@@ -17,7 +17,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
 import Modal from "@/components/ui/Modal";
-import LoadingScreen from "@/components/ui/LoadingScreen";
+import { TablesSkeleton } from "@/components/ui/Skeletons";
 import TablePaymentDialog from "./TablePaymentDialog";
 import type { RestaurantTable, Order } from "@/types";
 
@@ -147,7 +147,7 @@ export default function TablesPage() {
     a.click();
   };
 
-  if (authLoading || loading) return <LoadingScreen message={t("tables.loading")} />;
+  if (authLoading || loading) return <TablesSkeleton />;
 
   return (
     <Box>

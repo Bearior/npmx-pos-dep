@@ -27,9 +27,10 @@ import {
 import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
+import { SettingsSkeleton } from "@/components/ui/Skeletons";
 
 export default function SettingsPage() {
-  const { profile, session, refreshProfile } = useAuth();
+  const { profile, session, refreshProfile, loading: authLoading } = useAuth();
   const { t } = useLanguage();
   const token = session?.access_token;
 
@@ -130,6 +131,8 @@ export default function SettingsPage() {
       setSaving(false);
     }
   };
+
+  if (authLoading) return <SettingsSkeleton />;
 
   return (
     <Box>

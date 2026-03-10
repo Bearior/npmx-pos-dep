@@ -41,7 +41,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
 import Modal from "@/components/ui/Modal";
-import LoadingScreen from "@/components/ui/LoadingScreen";
+import { InventorySkeleton } from "@/components/ui/Skeletons";
 import type { Product, Category, InventoryTransaction, ProductVariant } from "@/types";
 
 interface OptionRow {
@@ -441,7 +441,7 @@ export default function InventoryPage() {
     return list;
   }, [products, search, sortField, sortDir]);
 
-  if (authLoading || loading) return <LoadingScreen message="Loading inventory..." />;
+  if (authLoading || loading) return <InventorySkeleton />;
 
   return (
     <Box>
