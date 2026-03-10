@@ -403,3 +403,53 @@ export function TablesSkeleton() {
     </Box>
   );
 }
+
+// ─── KDS (Kitchen Display) Skeleton ──────────────────
+
+export function KDSSkeleton() {
+  return (
+    <Box>
+      <Box className="flex items-center justify-between mb-3">
+        <Box className="flex items-center gap-2">
+          <Skeleton variant="circular" width={28} height={28} />
+          <Skeleton width={200} height={36} />
+          <Skeleton variant="rounded" width={90} height={24} />
+        </Box>
+      </Box>
+      <Box className="flex gap-1 mb-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} variant="rounded" width={90} height={36} />
+        ))}
+      </Box>
+      <Grid container spacing={2}>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Grid item xs={12} sm={6} md={4} lg={3} key={i}>
+            <Card sx={{ borderTop: 4, borderColor: "grey.300" }}>
+              <CardContent>
+                <Box className="flex items-center justify-between mb-1">
+                  <Skeleton width={80} height={28} />
+                  <Skeleton variant="rounded" width={70} height={24} />
+                </Box>
+                <Box className="flex gap-2 mb-2">
+                  <Skeleton variant="rounded" width={60} height={24} />
+                  <Skeleton width={80} height={20} />
+                </Box>
+                <Skeleton width={50} height={18} sx={{ mb: 1.5 }} />
+                <Skeleton variant="rectangular" height={1} sx={{ mb: 1.5 }} />
+                {Array.from({ length: 3 }).map((_, j) => (
+                  <Box key={j} sx={{ mb: 1 }}>
+                    <Skeleton width="85%" height={18} />
+                    <Skeleton width={60} height={14} />
+                  </Box>
+                ))}
+              </CardContent>
+              <Box sx={{ px: 2, pb: 2 }}>
+                <Skeleton variant="rounded" height={44} />
+              </Box>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </Box>
+  );
+}

@@ -8,6 +8,7 @@ const {
   splitBill,
   voidOrder,
   getReceipt,
+  getKitchenOrders,
 } = require("./orders.handler");
 const { requireAuth, requireRole } = require("../../middleware/auth");
 const { validateBody, validateUUID, validatePagination } = require("../../middleware/validate");
@@ -15,6 +16,7 @@ const { validateBody, validateUUID, validatePagination } = require("../../middle
 router.use(requireAuth);
 
 router.get("/", validatePagination, getOrders);
+router.get("/kitchen", getKitchenOrders);
 router.get("/:id", validateUUID(), getOrder);
 router.get("/:id/receipt", validateUUID(), getReceipt);
 router.post("/", validateBody(["items"]), createOrder);

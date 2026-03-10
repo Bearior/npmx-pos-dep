@@ -413,6 +413,21 @@ const translations = {
   "order.empty": { en: "No items yet", th: "ยังไม่มีรายการ" },
   "order.total": { en: "Total", th: "ยอดรวม" },
   "order.loading": { en: "Loading menu...", th: "กำลังโหลดเมนู..." },
+
+  // -------- Kitchen Display (KDS) --------
+  "nav.kitchen": { en: "Kitchen", th: "ครัว" },
+  "kds.title": { en: "Kitchen Display", th: "หน้าจอครัว" },
+  "kds.all": { en: "All", th: "ทั้งหมด" },
+  "kds.activeOrders": { en: "active", th: "รายการ" },
+  "kds.noOrders": { en: "No active orders", th: "ไม่มีรายการที่ต้องทำ" },
+  "kds.table": { en: "Table", th: "โต๊ะ" },
+  "kds.min": { en: "min", th: "นาที" },
+  "kds.startPreparing": { en: "Start Preparing", th: "เริ่มเตรียม" },
+  "kds.markReady": { en: "Mark Ready", th: "พร้อมเสิร์ฟ" },
+  "kds.markServed": { en: "Mark Served", th: "เสิร์ฟแล้ว" },
+  "kds.statusUpdated": { en: "Status updated!", th: "อัปเดตสถานะแล้ว!" },
+  "kds.newOrder": { en: "New order received!", th: "มีออเดอร์ใหม่!" },
+  "kds.newOrders": { en: "new orders received!", th: "ออเดอร์ใหม่!" },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

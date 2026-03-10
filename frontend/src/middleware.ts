@@ -66,6 +66,7 @@ export const config = {
     "/discounts/:path*",
     "/settings/:path*",
     "/tables/:path*",
+    "/kitchen/:path*",
     "/login",
   ],
 };
