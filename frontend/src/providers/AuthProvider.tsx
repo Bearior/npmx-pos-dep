@@ -86,6 +86,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (event === "SIGNED_OUT") {
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        if (!isPublicPath(pathname)) {
+          router.replace("/login");
+        }
+        window.location.reload(); // Force full reload to clear any in-memory state
+        return;
+      }
       setSession(newSession);
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
@@ -100,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase, fetchProfile]);
+  }, [supabase, fetchProfile, isPublicPath, pathname, router]);
 
   // Client-side redirect: when auth resolves with no session, redirect to login
   useEffect(() => {
@@ -109,6 +119,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       router.replace("/login");
     }
   }, [loading, session, pathname, router, isPublicPath]);
+
+  // Proactive token refresh every 10 minutes to keep POS sessions alive
+  useEffect(() => {
+    if (!session) return;
+    const interval = setInterval(async () => {
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error) {
+        console.error("Session refresh failed:", error.message);
+      } else if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+      }
+    }, 10 * 60 * 1000); // 10 minutes
+    return () => clearInterval(interval);
+  }, [session, supabase]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });

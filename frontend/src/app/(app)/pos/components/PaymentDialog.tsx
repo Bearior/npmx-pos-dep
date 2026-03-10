@@ -18,10 +18,13 @@ import {
   CreditCard as CardIcon,
   AccountBalance as TransferIcon,
   CheckCircle as SuccessIcon,
+  Receipt as ReceiptIcon,
 } from "@mui/icons-material";
 import { QRCodeSVG } from "qrcode.react";
 import generatePayload from "promptpay-qr";
 import Modal from "@/components/ui/Modal";
+import ReceiptDialog from "@/components/ui/ReceiptDialog";
+import type { ReceiptData } from "@/components/ui/ReceiptDialog";
 import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
@@ -71,6 +74,9 @@ export default function PaymentDialog({
   const [success, setSuccess] = useState(false);
   const [change, setChange] = useState(0);
   const [error, setError] = useState("");
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
   // PromptPay QR payload
   const promptPayId = typeof window !== "undefined" ? localStorage.getItem("promptpay_id") || "" : "";
@@ -105,6 +111,7 @@ export default function PaymentDialog({
       };
 
       const order = await api.post<{ id: string }>("/orders", orderBody, session.access_token);
+      setOrderId(order.id);
 
       // 2. Create payment
       const paymentBody = {
@@ -136,12 +143,29 @@ export default function PaymentDialog({
     setSuccess(false);
     setChange(0);
     setError("");
+    setOrderId(null);
+    setReceiptData(null);
     onClose();
+  };
+
+  const handlePrintReceipt = async () => {
+    if (!orderId || !session?.access_token) return;
+    try {
+      const res = await api.get<{ success: boolean; data: ReceiptData }>(
+        `/orders/${orderId}/receipt`,
+        session.access_token
+      );
+      setReceiptData(res.data);
+      setReceiptOpen(true);
+    } catch (err) {
+      console.error("Failed to load receipt:", err);
+    }
   };
 
   const quickAmounts = [20, 50, 100, 500, 1000];
 
   return (
+    <>
     <Modal open={open} onClose={handleClose} title={t("payment.title")} maxWidth="sm">
       {success ? (
         <Box className="flex flex-col items-center py-6">
@@ -157,9 +181,18 @@ export default function PaymentDialog({
               {t("payment.change")}: ฿{change.toFixed(2)}
             </Typography>
           )}
-          <Button variant="contained" sx={{ mt: 3 }} onClick={handleClose}>
-            {t("payment.newOrder")}
-          </Button>
+          <Box className="flex gap-2 mt-3">
+            <Button
+              variant="outlined"
+              startIcon={<ReceiptIcon />}
+              onClick={handlePrintReceipt}
+            >
+              {t("receipt.print")}
+            </Button>
+            <Button variant="contained" onClick={handleClose}>
+              {t("payment.newOrder")}
+            </Button>
+          </Box>
         </Box>
       ) : (
         <Box>
@@ -320,5 +353,12 @@ export default function PaymentDialog({
         </Box>
       )}
     </Modal>
+
+    <ReceiptDialog
+      open={receiptOpen}
+      onClose={() => setReceiptOpen(false)}
+      receipt={receiptData}
+    />
+    </>
   );
 }

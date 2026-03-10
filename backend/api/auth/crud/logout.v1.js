@@ -8,7 +8,7 @@ const { supabaseAdmin } = require("../../../config/supabase");
 module.exports = async (req, res) => {
   try {
     // Sign out the user from all sessions using the admin API
-    const { error } = await supabaseAdmin.auth.admin.signOut(req.accessToken);
+    const { error } = await supabaseAdmin.auth.admin.signOut(req.user.id, "global");
 
     if (error) {
       console.error("Supabase signOut error:", error.message);

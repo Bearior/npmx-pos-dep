@@ -7,6 +7,7 @@ const {
   updateOrderStatus,
   splitBill,
   voidOrder,
+  getReceipt,
 } = require("./orders.handler");
 const { requireAuth, requireRole } = require("../../middleware/auth");
 const { validateBody, validateUUID, validatePagination } = require("../../middleware/validate");
@@ -15,6 +16,7 @@ router.use(requireAuth);
 
 router.get("/", validatePagination, getOrders);
 router.get("/:id", validateUUID(), getOrder);
+router.get("/:id/receipt", validateUUID(), getReceipt);
 router.post("/", validateBody(["items"]), createOrder);
 router.put("/:id/status", validateUUID(), updateOrderStatus);
 router.post("/:id/split", validateUUID(), splitBill);

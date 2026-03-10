@@ -23,15 +23,18 @@ import {
   KeyboardArrowDown,
   KeyboardArrowUp,
   Refresh as RefreshIcon,
+  Receipt as ReceiptIcon,
 } from "@mui/icons-material";
 import { useAuth } from "@/providers/AuthProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
 import api from "@/libs/api";
 import StatusBadge from "@/components/ui/StatusBadge";
 import LoadingScreen from "@/components/ui/LoadingScreen";
+import ReceiptDialog from "@/components/ui/ReceiptDialog";
+import type { ReceiptData } from "@/components/ui/ReceiptDialog";
 import type { Order, OrderStatus } from "@/types";
 
-function OrderRow({ order, token, onRefresh }: { order: Order; token?: string; onRefresh: () => void }) {
+function OrderRow({ order, token, onRefresh, onPrintReceipt }: { order: Order; token?: string; onRefresh: () => void; onPrintReceipt: (orderId: string) => void }) {
   const [open, setOpen] = useState(false);
   const { t } = useLanguage();
 
@@ -89,6 +92,16 @@ function OrderRow({ order, token, onRefresh }: { order: Order; token?: string; o
             <Button size="small" color="success" onClick={() => updateStatus("completed")}>
               {t("orders.complete")}
             </Button>
+          )}
+          {(order.status === "completed" || order.payments?.length) && (
+            <IconButton
+              size="small"
+              color="primary"
+              onClick={() => onPrintReceipt(order.id)}
+              title={t("receipt.print")}
+            >
+              <ReceiptIcon fontSize="small" />
+            </IconButton>
           )}
         </TableCell>
       </TableRow>
@@ -169,6 +182,22 @@ export default function OrdersPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
+
+  const handlePrintReceipt = async (orderId: string) => {
+    if (!token) return;
+    try {
+      const res = await api.get<{ success: boolean; data: ReceiptData }>(
+        `/orders/${orderId}/receipt`,
+        token
+      );
+      setReceiptData(res.data);
+      setReceiptOpen(true);
+    } catch (err) {
+      console.error("Failed to load receipt:", err);
+    }
+  };
 
   const fetchOrders = async () => {
     if (!token) { setLoading(false); return; }
@@ -241,7 +270,7 @@ export default function OrdersPage() {
               </TableHead>
               <TableBody>
                 {orders.map((order) => (
-                  <OrderRow key={order.id} order={order} token={token} onRefresh={fetchOrders} />
+                  <OrderRow key={order.id} order={order} token={token} onRefresh={fetchOrders} onPrintReceipt={handlePrintReceipt} />
                 ))}
                 {orders.length === 0 && (
                   <TableRow>
@@ -255,6 +284,12 @@ export default function OrdersPage() {
           </Box>
         </CardContent>
       </Card>
+
+      <ReceiptDialog
+        open={receiptOpen}
+        onClose={() => setReceiptOpen(false)}
+        receipt={receiptData}
+      />
     </Box>
   );
 }

@@ -351,6 +351,25 @@ const translations = {
   "payment.qrError": { en: "Cannot generate QR Code — please check PromptPay ID", th: "ไม่สามารถสร้าง QR Code ได้ — กรุณาตรวจสอบ PromptPay ID" },
   "payment.scanQr": { en: "Scan QR Code to pay via PromptPay", th: "สแกน QR Code เพื่อชำระเงินผ่าน PromptPay" },
 
+  // -------- Receipt --------
+  "receipt.receipt": { en: "Receipt", th: "ใบเสร็จ" },
+  "receipt.print": { en: "Print Receipt", th: "พิมพ์ใบเสร็จ" },
+  "receipt.orderNo": { en: "Order No", th: "เลขออเดอร์" },
+  "receipt.date": { en: "Date", th: "วันที่" },
+  "receipt.cashier": { en: "Cashier", th: "แคชเชียร์" },
+  "receipt.table": { en: "Table", th: "โต๊ะ" },
+  "receipt.customer": { en: "Customer", th: "ลูกค้า" },
+  "receipt.subtotal": { en: "Subtotal", th: "รวมย่อย" },
+  "receipt.discount": { en: "Discount", th: "ส่วนลด" },
+  "receipt.vat": { en: "VAT", th: "ภาษี" },
+  "receipt.total": { en: "Total", th: "ยอดรวม" },
+  "receipt.paidBy": { en: "Paid by", th: "ชำระโดย" },
+  "receipt.tendered": { en: "Tendered", th: "รับเงิน" },
+  "receipt.change": { en: "Change", th: "เงินทอน" },
+  "receipt.ref": { en: "Ref", th: "อ้างอิง" },
+  "receipt.thankYou": { en: "Thank you for your purchase!", th: "ขอบคุณที่ใช้บริการ!" },
+  "receipt.powered": { en: "Powered by NPMX POS", th: "ขับเคลื่อนโดย NPMX POS" },
+
   // -------- Tables --------
   "nav.tables": { en: "Tables", th: "โต๊ะ" },
   "tables.title": { en: "Table Management", th: "จัดการโต๊ะ" },

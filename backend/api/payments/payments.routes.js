@@ -6,7 +6,7 @@ const {
   createPayment,
   refundPayment,
 } = require("./payments.handler");
-const { requireAuth } = require("../../middleware/auth");
+const { requireAuth, requireRole } = require("../../middleware/auth");
 const { validateBody, validateUUID } = require("../../middleware/validate");
 
 router.use(requireAuth);
@@ -14,6 +14,6 @@ router.use(requireAuth);
 router.get("/", getPayments);
 router.get("/:id", validateUUID(), getPayment);
 router.post("/", validateBody(["order_id", "method", "amount"]), createPayment);
-router.post("/:id/refund", validateUUID(), refundPayment);
+router.post("/:id/refund", requireRole("admin", "manager"), validateUUID(), refundPayment);
 
 module.exports = router;
